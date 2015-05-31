@@ -1,7 +1,10 @@
+"use strict";
 var record = process.argv[2] || (console.log("Specify a record") || process.exit(-1));
 
 var fs = require('fs');
 var http = require('http');
+
+var accepted_formats = {212: 12, 16: 16};
 
 fs.readFile(record+'.hea', {encoding: 'ascii'}, function(err, data) {
 	if(err) {
@@ -32,39 +35,59 @@ fs.readFile(record+'.hea', {encoding: 'ascii'}, function(err, data) {
 		};
 		console.log(info);
 		
+
 		
 		var signals = [];
+		var total_bits_per_frame = 0;
+		var highest_adc_resolution = 0;
+		var highest_samples_per_frame = 0;
 		for(var i = 0; i < info.number_of_signals; i++) {
 			var fmt = /^(\S+)\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?(?:[Ee]\d+)?)(?:x([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\:([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\(([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?)\))?(?:\/(\S+))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+(.+))?\r?$/g;
 
 			var arr = fmt.exec(lines[i+1]);
-			signals.push(
+			var signal = 
 				{
 					file_name: arr[1],	
 					format: arr[2] | 0,
-					samples_per_frame: arr[3] || 1,
+					samples_per_frame: (arr[3] | 0) || 1,
 					skew: arr[4] || 0,
 					byte_offset: arr[5] || 0,
 					adc_gain: arr[6] || 200,
 					baseline: arr[7] || 0,
 					units: arr[8] || "",
-					adc_resolution: arr[9] || 12,
+					adc_resolution: (arr[9] | 0) || 12, // covers only amplitude formats
 					adc_zero: arr[10] || 0,
 					initial_value: arr[11] || arr[6] || 200,
 					checksum: arr[12] || 0,
 					block_size: arr[13] || 0,
 					description: arr[14] || ""
-				}
-			);
-			if(signals[signals.length-1].format != 212) {
+				};
+			signals.push(signal);
+
+			
+			if(!accepted_formats[signal.format]) {
 				var discarded = signals.pop();
 				console.log("Cannot decode format " + discarded.format + " for " + discarded.description);
+			} else {
+				signal.bits_per_frame = accepted_formats[signal.format] * signal.samples_per_frame;
+				total_bits_per_frame += signal.bits_per_frame;
+				if(signal.adc_resolution>highest_adc_resolution) {
+					highest_adc_resolution = signal.adc_resolution;
+				}
+				if(signal.samples_per_frame>highest_samples_per_frame) {
+					highest_samples_per_frame = signal.samples_per_frame;
+				}
 			}
 		}
 
 		if(signals.length == 0) {
 			return;
 		}
+		console.log(signals);
+		var total_bytes_per_frame = total_bits_per_frame / 8;
+
+		console.log("total_bytes_per_frame:"+total_bytes_per_frame);
+
 
 		var  top_line = ['sequence','elapsed'];
 		signals.forEach(function(value, index, array) {
@@ -83,42 +106,64 @@ fs.readFile(record+'.hea', {encoding: 'ascii'}, function(err, data) {
 
 				var elapsed_ms = 0;
 
-				for(var i = 0; i < data.length; i+=12) { // TODO not always 12 bytes per frame
-					var frame = [];
+				// Go through the data frame by frame
+				for(var i = 0; i < data.length; i+=total_bytes_per_frame) {
+					var rows = [];
+					// Each frame will contain 
+					var signalBase = i;
 					for(var j = 0; j < signals.length; j++) {
-						var value;
-						switch(signals[j].format) {
-							case 212:
-								var adc;
-								if(0 == (j%2)) {
-									adc = ((data.readUInt8(i+j/2*3+1)&0x0F)<<8) + data.readUInt8(i+j/2*3);
-								} else {
-									adc = ((data.readUInt8(i+(j-1)/2*3+1)&0xF0)<<4) + data.readUInt8(i+(j-1)/2*3+2);
-								}
-								var sign = 0 != (0x800&adc) ? -1 : 1;
-								if(sign < 0) {
-									adc = ~adc + 1;
-								}
+						for(var k = 0; k < signals[j].samples_per_frame; k++) {
+							var adc;
+							switch(signals[j].format) {
+								case 212:
+									if(0 == (j%2)) {
+										adc = ((data.readUInt8(i+j/2*3+1)&0x0F)<<8) + data.readUInt8(i+j/2*3);
+									} else {
+										adc = ((data.readUInt8(i+(j-1)/2*3+1)&0xF0)<<4) + data.readUInt8(i+(j-1)/2*3+2);
+									}
+									var sign = 0 != (0x800&adc) ? -1 : 1;
+									if(sign < 0) {
+										adc = ~adc + 1;
+									}
 
-								adc &= 0x7FF;
-								adc *= sign;
+									adc &= 0x7FF;
+									adc *= sign;
 
-								value = (adc - signals[j].baseline) / signals[j].adc_gain;
-								break;
-							default:
-								console.log("Unknown format " + signals[j].format);
-								break;
+									break;
+								case 16:
+									adc = data.readInt16LE(signalBase);
+									signalBase += 2;
+									break;
+								default:
+									console.log("Unknown format " + signals[j].format);
+									break;
+							}
+							var value = (adc - signals[j].baseline) / signals[j].adc_gain;
+							// Repeat the value (upsample) 
+							var upsample_rate = highest_samples_per_frame / signals[j].samples_per_frame;
+							//console.log(signals[j].description + " upsample at " + upsample_rate + " highest " + highest_samples_per_frame + " this " + signals[j].samples_per_frame);
+							for(var l = 0; l < upsample_rate; l++) {
+								var row_num = k * upsample_rate + l;
+								while(row_num>=rows.length) {
+									rows.push([]);
+								}
+								rows[row_num].push(value);
+							}
+
 						}
-
-						frame.push(Math.round(value*1000)/1000);						
-
+						// frame.push(Math.round(value*1000)/1000);	
+						// frame.push(adc);					
+						
 					}
 
-					var time =  Math.floor(elapsed_ms/3600000)+":"+
-						        Math.floor(elapsed_ms%3600000/60000)+":"+
-						        Math.floor(elapsed_ms%60000/1000)+"."+
-						        Math.floor(elapsed_ms%1000);
-					console.log((i/12)+"\t"+time+"\t"+frame.join("\t"));	
+					for(var t = 0; t < rows.length; t++) {
+						var e = elapsed_ms + time_interval / highest_samples_per_frame;
+						var time =  Math.floor(e/3600000)+":"+
+							        Math.floor(e%3600000/60000)+":"+
+							        Math.floor(e%60000/1000)+"."+
+							        Math.floor(e%1000);
+						console.log((i/total_bytes_per_frame*highest_samples_per_frame+t)+"\t"+rows[t].join("\t"));							
+					}
 
 					elapsed_ms += time_interval;
 
