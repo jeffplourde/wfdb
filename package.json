@@ -1,0 +1,11 @@
+{
+  "name": "wfdb",
+  "version": "0.0.1",
+  "description": "Library for accessing Waveform DataBase files.",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jeff Plourde <jeff@jeffplourde.com> (http://www.jeffplourde.com)",
+  "license": "ISC"
+}
