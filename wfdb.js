@@ -7,15 +7,16 @@ function WFDB(locator) {
 	this.locator = locator;
 }
 
-WFDB.fileLocator = function(fs) {
+WFDB.fileLocator = function(fs, basePath) {
+	basePath = basePath || "";
 	return {
 		locateText: function (record, callback) {
-			fs.readFile(record, {encoding: 'ascii'}, function(err, data) {
+			fs.readFile(basePath+record, {encoding: 'ascii'}, function(err, data) {
 				callback(err, data);
 			});
 		},
 		locateBuffer: function(record, callback) {
-			fs.readFile(record, function(err, data) {
+			fs.readFile(basePath+record, function(err, data) {
 				callback(err, data);
 			});			
 		}
@@ -59,6 +60,55 @@ WFDB.httpLocator = function(http, baseURI) {
 	};
 };
 
+WFDB.cachedLocator = function(fs, basePath, http, baseURI) {
+	var fileLocator = WFDB.fileLocator(fs, basePath);
+	function checkCache(record, callback) {
+		var fullPath = basePath + record;
+		if(!fs.existsSync(fullPath)) { 
+			var parent = fullPath.substring(0, fullPath.lastIndexOf("/"));
+			if(!fs.existsSync(parent)) { fs.mkdirSync(parent); }
+			var f = fs.openSync(fullPath, "w");
+			http.get(baseURI+record, function(res) {
+				res.on('data', function(chunk) {
+					fs.writeSync(f, chunk, 0, chunk.length);
+				});
+			}).on('end', function() {
+				fs.closeSync(f);
+				console.log("Closing file, issuing callback");
+				callback();
+			}).on('error', function(e) {
+				callback(e);
+			});
+		} else {
+			console.log("found file, issuing callback");
+			callback();
+		}
+	}
+
+	return {
+		locateText: function(record, callback) {
+			checkCache(record, function(e) {
+				if(e) {
+					callback(e, null);
+				} else {
+					console.log("cache callback, invoking fileLocator");
+					fileLocator.locateText(record, callback);
+				}
+			});
+		},
+		locateBuffer: function(record, callback) {
+			checkCache(record, function(e) {
+				if(e) {
+					callback(e, null);
+				} else {
+					console.log("cache callback, invoking fileLocator");
+					fileLocator.locateBuffer(record, callback);
+				}
+			});
+		}
+	};
+};
+
 WFDB.prototype.readData = function(record, cb_headers, cb_data) {
 	var locator = this.locator;
 	locator.locateText(record+'.hea', function(err, data) {
@@ -73,7 +123,7 @@ WFDB.prototype.readData = function(record, cb_headers, cb_data) {
 			data = data.replace(/^\s*$/gm, "");
 
 			var lines = data.split("\n");
-			console.log("A HEADER STARTS WITH " + lines[0]);
+			// console.log("A HEADER STARTS WITH " + lines[0]);
 			var re = /^(\S+)(?:\/(\d+))?\s+(\d+)\s+([0-9e\-.]+)?(?:\/([0-9e\-.]+))?(?:\(([\d-.]+)\))?(?:\s+(\d+))?(?:\s+(\S+))?(?:\s+(\S+))?/;
 
 			var header = re.exec(lines[0]);
