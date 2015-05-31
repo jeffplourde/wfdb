@@ -13,37 +13,54 @@ fs.readFile(record+'.hea', {encoding: 'ascii'}, function(err, data) {
 		data = data.replace(/^\s*$/gm, "");
 
 		var lines = data.split("\n");
+
+		var re = /^(\S+)(?:\/(\d+))?\s+(\d+)\s+([0-9e\-.]+)?(?:\/([0-9e\-.]+))?(?:\(([\d-.]+)\))?(?:\s+(\d+))?(?:\s+(\S+))?(?:\s+(\S+))?/;
+		console.log(lines[0]);
+		var header = re.exec(lines[0]);
+		var info = {
+			name: header[1],
+			number_of_segments: header[2],
+			number_of_signals: header[3] || 0,
+			sampling_frequency: header[4] || 250,
+			counter_frequency: header[5] || 0,
+			base_counter_value: header[6] || 0,
+			number_of_samples_per_signal: header[7],
+			base_time: header[8] || '0:0:0',
+			base_date: header[9]
+		};
+		console.log(info);
 		
-		var header = lines[0].split(/[\s\n]/);
-
-		// console.log("record name:"+header[0]);
-		// console.log("number of signals:"+header[1]);
-
-		
-
 		var signals = [];
-		for(var i = 0; i < header[1]; i++) {
-			// console.log(lines[i+1]);
-			var fmt = /^(\S+)\s+(\S+)\s+([\d-.]+)(?:\(([\d-.]+)\))?(?:\/(\S+))?\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$/g;
+		for(var i = 0; i < info.number_of_signals; i++) {
+			var fmt = /^(\S+)\s+(\S+)(?:x(\d+))?(?:\:(\d+))?(?:\+(\d+))?\s+([\d-.]+)(?:\(([\d-.]+)\))?(?:\/(\S+))?\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*)$/g;
 			var arr = fmt.exec(lines[i+1]);
 			signals.push(
 				{
-					name: arr[1],
-					adc_gain: arr[3] || 200,
-					baseline: arr[4] || 0,
-					units: arr[5] || ""
+					file_name: arr[1],
+					format: arr[2],
+					samples_per_frame: arr[3] || 1,
+					skew: arr[4] || 0,
+					byte_offset: arr[5] || 0,
+					adc_gain: arr[6] || 200,
+					baseline: arr[7] || 0,
+					units: arr[8] || "",
+					adc_resolution: arr[9] || 12,
+					adc_zero: arr[10] || 0,
+					initial_value: arr[11] || arr[6] || 200,
+					checksum: arr[12] || 0,
+					block_size: arr[13] || 0,
+					description: arr[14] || ""
 				}
 			);
-			//console.log("signal "+(i+1)+" "+arr[3]+" "+arr[4]+" "+arr[5]);
-			// console.log(signals);
 		}
+		console.log(signals);
 
+		process.exit(0);
 		fs.readFile(record+'.dat', function(err, data) {
 			if(err) {
 				console.log(err);
 				process.exit(-1);
 			} else {
-				// console.log(data);
 				var time_interval = 1000.0 / 360.0;
 
 				var elapsed_ms = 0;
