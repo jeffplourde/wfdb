@@ -41,7 +41,7 @@ fs.readFile(record+'.hea', {encoding: 'ascii'}, function(err, data) {
 			signals.push(
 				{
 					file_name: arr[1],	
-					format: arr[2],
+					format: arr[2] | 0,
 					samples_per_frame: arr[3] || 1,
 					skew: arr[4] || 0,
 					byte_offset: arr[5] || 0,
@@ -87,7 +87,7 @@ fs.readFile(record+'.hea', {encoding: 'ascii'}, function(err, data) {
 					var frame = [];
 					for(var j = 0; j < signals.length; j++) {
 						var value;
-						switch(signals[i].format) {
+						switch(signals[j].format) {
 							case 212:
 								var adc;
 								if(0 == (j%2)) {
@@ -106,6 +106,7 @@ fs.readFile(record+'.hea', {encoding: 'ascii'}, function(err, data) {
 								value = (adc - signals[j].baseline) / signals[j].adc_gain;
 								break;
 							default:
+								console.log("Unknown format " + signals[j].format);
 								break;
 						}
 
