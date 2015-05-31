@@ -49,26 +49,33 @@ fs.readFile(record+'.hea', {encoding: 'ascii'}, function(err, data) {
 				var elapsed_ms = 0;
 
 				for(var i = 0; i < data.length; i+=12) {
+					var frame = [];
+					for(var j = 0; j < signals.length; j++) {
+						var adc;
+						if(0 == (j%2)) {
+							adc = ((data.readUInt8(i+j/2*3+1)&0x0F)<<8) + data.readUInt8(i+j/2*3);
+						} else {
+							adc = ((data.readUInt8(i+(j-1)/2*3+1)&0xF0)<<4) + data.readUInt8(i+(j-1)/2*3+2);
+						}
+						var sign = 0 != (0x800&adc) ? -1 : 1;
+						if(sign < 0) {
+							adc = ~adc + 1;
+						}
 
-					var adc = ((data.readUInt8(i+1)&0x0F)<<8) + data.readUInt8(i);
+						adc &= 0x7FF;
+						adc *= sign;
 
-					var sign = 0 != (0x800&adc) ? -1 : 1;
-					if(sign < 0) {
-						adc = ~adc + 1;
+						var value = (adc - signals[j].baseline) / signals[j].adc_gain;
+
+						frame.push(Math.round(value*1000)/1000);						
+
 					}
 
-					adc &= 0x7FF;
-					adc *= sign;
-
-					var value = (adc - signals[0].baseline) / signals[0].adc_gain;
-					var time = Math.floor(elapsed_ms/3600000)+":"+
-					           Math.floor(elapsed_ms%3600000/60000)+":"+
-					           Math.floor(elapsed_ms%60000/1000)+"."+
-					           Math.floor(elapsed_ms%1000);
-					if( (i/12) >= 28800) {
-						console.log((i/12)+"\t"+time+"\t"+(sign>0?"POSITIVE":"NEGATIVE")+"\t"+adc+"\t"+(Math.round(value*1000)/1000));	
-					}					           
-					
+					var time =  Math.floor(elapsed_ms/3600000)+":"+
+						        Math.floor(elapsed_ms%3600000/60000)+":"+
+						        Math.floor(elapsed_ms%60000/1000)+"."+
+						        Math.floor(elapsed_ms%1000);
+					console.log((i/12)+"\t"+time+"\t"+frame.join("\t"));	
 
 					elapsed_ms += time_interval;
 
