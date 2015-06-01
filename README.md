@@ -11,6 +11,7 @@ I've tested with databases available from [Physiobank](http://physionet.org/phys
 * mghdb
 * drivedb
 * apnea-ecg
+* mitdb
 
 In its default configuration the "main" program will download data files from "http://physionet.org/physiobank/database/" into a subdirectory called "data/" in the local file system.  It will first show the header information decoded and then each signal tab-delimited with each sequential sample on a new line.
 

@@ -112,7 +112,7 @@ CachedLocator.prototype.locate = function(record, callback) {
             // console.log("error in cache");
             response.emit('error', e);
         }).on('end', function() {
-            console.log("delegating to file locator");
+            // console.log("delegating to file locator");
             self.fileLocator.locate(record, callback);
         });
     });
@@ -170,7 +170,7 @@ WFDB.prototype.readData = function(record, callback) {
                         skew: arr[4] || 0,
                         byte_offset: arr[5] || 0,
                         adc_gain: arr[6] || 200,
-                        baseline: arr[7] || 0,
+                        baseline: arr[7] || arr[10] || 0,
                         units: arr[8] || "",
                         adc_resolution: (arr[9] | 0) || 12, // covers only amplitude formats
                         adc_zero: arr[10] || 0,
@@ -179,6 +179,11 @@ WFDB.prototype.readData = function(record, callback) {
                         block_size: arr[13] || 0,
                         description: arr[14] || ""
                     };
+
+                signal.mask = 0;
+                for(var j = 0; j < signal.adc_resolution; j++) {
+                    signal.mask |= 1 << j;
+                }
                 signals.push(signal);
 
                 
@@ -245,6 +250,9 @@ WFDB.prototype.readData = function(record, callback) {
 
                                         adc &= 0x7FF;
                                         adc *= sign;
+
+                                        // Is there a case where this is necessary?
+                                        adc &= signals[j].mask;
 
                                         break;
                                     case 16:
