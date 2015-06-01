@@ -144,6 +144,10 @@ WFDB.prototype.readData = function(record, callback) {
             var re = /^(\S+)(?:\/(\d+))?\s+(\d+)\s+([0-9e\-.]+)?(?:\/([0-9e\-.]+))?(?:\(([\d-.]+)\))?(?:\s+(\d+))?(?:\s+(\S+))?(?:\s+(\S+))?/;
 
             var header = re.exec(lines[0]);
+            if(!header) {
+                response.emit('error', "Cannot parse header descriptor: " + lines[0]);
+                return;
+            }
             var info = {
                 name: header[1],
                 number_of_segments: header[2],
@@ -164,6 +168,10 @@ WFDB.prototype.readData = function(record, callback) {
                 var fmt = /^(\S+)\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?(?:[Ee]\d+)?)(?:x([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\:([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\(([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?)\))?(?:\/(\S+))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+([+-]?\d*(?:\.\d+)?(?:[Ee]\d+)?))?(?:\s+(.+))?\r?$/g;
 
                 var arr = fmt.exec(lines[i+1]);
+                if(!arr) {
+                    response.emit('error', "Cannot parse signal descriptor: " + lines[i+1]);
+                    return;
+                }
                 var signal = 
                     {
                         file_name: arr[1],  
@@ -171,11 +179,11 @@ WFDB.prototype.readData = function(record, callback) {
                         samples_per_frame: (arr[3] | 0) || 1,
                         skew: arr[4] || 0,
                         byte_offset: arr[5] || 0,
-                        adc_gain: arr[6] | 0 || DEFGAIN,
-                        baseline: arr[7] || arr[10] || 0,
+                        adc_gain: parseFloat(arr[6]) || DEFGAIN,
+                        baseline: parseFloat(arr[7]) || parseFloat(arr[10]) || 0,
                         units: arr[8] || "",
                         adc_resolution: (arr[9] | 0) || 12, // covers only amplitude formats
-                        adc_zero: arr[10] || 0,
+                        adc_zero: parseFloat(arr[10]) || 0,
                         initial_value: arr[11] || arr[6] || 200,
                         checksum: arr[12] || 0,
                         block_size: arr[13] || 0,
@@ -221,7 +229,7 @@ WFDB.prototype.readData = function(record, callback) {
             // });
             // console.log(top_line.join("\t"));
 
-
+            // TODO Handle skew
 
             locator.locate(record+'.dat', function(res) {
                 res.once('error', function(err) { response.emit('error', err); })
@@ -231,6 +239,7 @@ WFDB.prototype.readData = function(record, callback) {
                     var elapsed_ms = 0;
 
                     // Go through the data frame by frame
+                    console.log("TTL:"+total_bytes_per_frame);
                     for(var i = 0; i < data.length; i+=total_bytes_per_frame) {
                         var rows = [];
                         // Each frame will contain 
@@ -240,11 +249,13 @@ WFDB.prototype.readData = function(record, callback) {
                                 var adc;
                                 switch(signals[j].format) {
                                     case 212:
-                                        if(0 == (j%2)) {
-                                            adc = ((data.readUInt8(i+j/2*3+1)&0x0F)<<8) + data.readUInt8(i+j/2*3);
+                                        // integer 
+                                        if((signalBase | 0) === signalBase) {
+                                            adc = ((data.readUInt8(signalBase+1)&0x0F)<<8) + data.readUInt8(signalBase);
                                         } else {
-                                            adc = ((data.readUInt8(i+(j-1)/2*3+1)&0xF0)<<4) + data.readUInt8(i+(j-1)/2*3+2);
+                                            adc = ((data.readUInt8(signalBase|0)&0xF0)<<4) + data.readUInt8((signalBase|0)+1);
                                         }
+
                                         var sign = 0 != (0x800&adc) ? -1 : 1;
                                         if(sign < 0) {
                                             adc = ~adc + 1;
@@ -254,7 +265,7 @@ WFDB.prototype.readData = function(record, callback) {
 
                                         adc &= 0x7FF;
                                         adc *= sign;
-
+                                        signalBase += 1.5;
                                         break;
                                     case 16:
                                         adc = data.readInt16LE(signalBase);
@@ -273,7 +284,7 @@ WFDB.prototype.readData = function(record, callback) {
                                     while(row_num>=rows.length) {
                                         rows.push([]);
                                     }
-                                    rows[row_num].push(value);
+                                    rows[row_num].push(adc);
                                 }
 
                             }
