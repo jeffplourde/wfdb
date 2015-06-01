@@ -5,8 +5,8 @@
 var record = process.argv[2] || (console.log("Specify a record") || process.exit(-1));
 
 var WFDB = require('./wfdb.js');
-var bson = require("bson");
-var BSON = bson.BSONPure.BSON;
+// var bson = require("bson");
+// var BSON = bson.BSONPure.BSON;
 
 // A Locator can be any object with a locate(record, callback) method.
 // The callback takes a single argument which is an EventEmitter that emits
