@@ -41,18 +41,23 @@ HTTPLocator.prototype.locate = function(record, callback) {
     var response = new EventEmitter();
     callback(response);
     var data;
+    var self = this;
     http.get(this.baseURI+record, function(res) {
-        res.on('data', function(chunk) {
-            if(!data) {
-                data = chunk;
-            } else {
-                data = Buffer.concat([data, chunk]);
-            }
-        }).on('end', function() {
-            response.emit('data', data);
-        }).on('error', function(e) {
-            response.emit('error', e);
-        });
+        if(res.statusCode != 200) {
+            response.emit('error', "Status code " + res.statusCode + " GETting " + self.baseURI+record);
+        } else {
+            res.on('data', function(chunk) {
+                if(!data) {
+                    data = chunk;
+                } else {
+                    data = Buffer.concat([data, chunk]);
+                }
+            }).on('end', function() {
+                response.emit('data', data);
+            }).on('error', function(e) {
+                response.emit('error', e);
+            });
+        }
     });
 };
 
