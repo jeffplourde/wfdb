@@ -239,7 +239,7 @@ WFDB.prototype.readData = function(record, callback) {
                     var elapsed_ms = 0;
 
                     // Go through the data frame by frame
-                    console.log("TTL:"+total_bytes_per_frame);
+                    //console.log("TTL:"+total_bytes_per_frame);
                     for(var i = 0; i < data.length; i+=total_bytes_per_frame) {
                         var rows = [];
                         // Each frame will contain 
@@ -284,7 +284,7 @@ WFDB.prototype.readData = function(record, callback) {
                                     while(row_num>=rows.length) {
                                         rows.push([]);
                                     }
-                                    rows[row_num].push(adc);
+                                    rows[row_num].push(value);
                                 }
 
                             }
