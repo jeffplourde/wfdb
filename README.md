@@ -7,8 +7,7 @@ NOTE: This is an __experimental__ package for reading *some* wfdb formatted file
 
 NOTE: Only raw data signals are currently read (no annotations or other data) with severe limitations on supporting all the various options of the WFDB format.
 
-I've tested with databases available from [Physiobank](http://physionet.org/physiobank/).
-Specifically
+I've tested with databases available from [Physiobank](http://physionet.org/physiobank/) using the powerful [Physiobank ATM](http://physionet.org/cgi-bin/atm/ATM) tool.  Specifically...
 * mghdb
 * drivedb
 * apnea-ecg

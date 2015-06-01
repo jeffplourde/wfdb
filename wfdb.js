@@ -2,23 +2,25 @@
 
 var EventEmitter = require('events').EventEmitter;
 var util = require("util");
+var fs = require('fs');
+var http = require('http');
 
 var accepted_formats = {212: 12, 16: 16};
+
 
 
 function WFDB(locator) {
 	this.locator = locator;
 }
 
-function FileLocator(fs, basePath) {
-	this.fs = fs;
+function FileLocator(basePath) {
 	this.basePath = basePath || "";
 }
 
 FileLocator.prototype.locate = function(record, callback) {
 	var response = new EventEmitter();
 	callback(response);
-	this.fs.readFile(this.basePath+record, function(err, data) {
+	fs.readFile(this.basePath+record, function(err, data) {
 		if(err) {
 			response.emit('error', err);
 		} else {
@@ -29,8 +31,7 @@ FileLocator.prototype.locate = function(record, callback) {
 
 WFDB.FileLocator = FileLocator;
 
-function HTTPLocator(http, baseURI) {
-	this.http = http;
+function HTTPLocator(baseURI) {
 	this.baseURI = baseURI;
 }
 
@@ -38,7 +39,7 @@ HTTPLocator.prototype.locate = function(record, callback) {
 	var response = new EventEmitter();
 	callback(response);
 	var data;
-	this.http.get(this.baseURI+record, function(res) {
+	http.get(this.baseURI+record, function(res) {
 		res.on('data', function(chunk) {
 			if(!data) {
 				data = chunk;
@@ -56,10 +57,8 @@ HTTPLocator.prototype.locate = function(record, callback) {
 WFDB.HTTPLocator = HTTPLocator;
 
 
-function Cache(fs, basePath, http, baseURI) {
-	this.fs = fs;
+function Cache(basePath, baseURI) {
 	this.basePath = basePath;
-	this.http = http;
 	this.baseURI = baseURI;
 }
 
@@ -69,33 +68,33 @@ Cache.prototype.locate = function(record, callback) {
 
 	var fullPath = this.basePath + record;
 
-	if(!this.fs.existsSync(fullPath)) {
+	if(!fs.existsSync(fullPath)) {
 		// console.log("file doesn't exist");
 		var parent = fullPath.substring(0, fullPath.lastIndexOf("/"));
-		if(!this.fs.existsSync(parent)) { 
+		if(!fs.existsSync(parent)) { 
 			var parentPathParts = parent.split("/");
 			var parentPath = parentPathParts[0];
-			this.fs.mkdirSync(parentPath); 
+			fs.mkdirSync(parentPath); 
 			for(var i = 1; i < parentPathParts.length; i++) {
 				parentPath = parentPath + "/" + parentPathParts[i];
-				this.fs.mkdirSync(parentPath); 
+				fs.mkdirSync(parentPath); 
 			}
 		}
 		var self = this;
-		this.http.get(this.baseURI+record, function(res) {
+		http.get(this.baseURI+record, function(res) {
 			res.once('end', function() {
 				response.emit('end');
 			});
-			res.pipe(self.fs.createWriteStream(fullPath));
+			res.pipe(fs.createWriteStream(fullPath));
 		});
 	} else {
 		response.emit('end');
 	}
 }
 
-function CachedLocator(fs, basePath, http, baseURI) {
-	this.fileLocator = new WFDB.FileLocator(fs, basePath);
-	this.cache = new Cache(fs, basePath, http, baseURI);
+function CachedLocator(basePath, baseURI) {
+	this.fileLocator = new WFDB.FileLocator(basePath);
+	this.cache = new Cache(basePath, baseURI);
 }
 
 CachedLocator.prototype.locate = function(record, callback) {
