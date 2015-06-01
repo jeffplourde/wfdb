@@ -247,12 +247,11 @@ WFDB.prototype.readData = function(record, callback) {
                                         if(sign < 0) {
                                             adc = ~adc + 1;
                                         }
+                                        // Is there a case where this is necessary?
+                                        // adc &= signals[j].mask;
 
                                         adc &= 0x7FF;
                                         adc *= sign;
-
-                                        // Is there a case where this is necessary?
-                                        adc &= signals[j].mask;
 
                                         break;
                                     case 16:
