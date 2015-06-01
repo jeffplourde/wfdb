@@ -89,10 +89,14 @@ Cache.prototype.locate = function(record, callback) {
         }
         var self = this;
         http.get(this.baseURI+record, function(res) {
-            res.once('end', function() {
-                response.emit('end');
-            });
-            res.pipe(fs.createWriteStream(fullPath));
+            if(res.statusCode != 200) {
+                response.emit('error', "Failed HTTP GET with status code: " + res.statusCode + " (" + self.baseURI+record+")");
+            } else {
+                res.once('end', function() {
+                    response.emit('end');
+                });
+                res.pipe(fs.createWriteStream(fullPath));
+            }
         });
     } else {
         response.emit('end');
@@ -247,28 +251,38 @@ WFDB.prototype.readData = function(record, callback) {
                         for(var j = 0; j < signals.length; j++) {
                             for(var k = 0; k < signals[j].samples_per_frame; k++) {
                                 var adc;
+                                // This skew handling is primitive
+                                var skewedSignalBase = signalBase + signals[j].skew * total_bytes_per_frame;
                                 switch(signals[j].format) {
                                     case 212:
-                                        // integer 
-                                        if((signalBase | 0) === signalBase) {
-                                            adc = ((data.readUInt8(signalBase+1)&0x0F)<<8) + data.readUInt8(signalBase);
+                                        if(skewedSignalBase>=data.length) {
+                                            adc = Math.NaN;
                                         } else {
-                                            adc = ((data.readUInt8(signalBase|0)&0xF0)<<4) + data.readUInt8((signalBase|0)+1);
+                                            // integer 
+                                            if((skewedSignalBase | 0) === skewedSignalBase) {
+                                                adc = ((data.readUInt8(skewedSignalBase+1)&0x0F)<<8) + data.readUInt8(skewedSignalBase);
+                                            } else {
+                                                adc = ((data.readUInt8(skewedSignalBase|0)&0xF0)<<4) + data.readUInt8((skewedSignalBase|0)+1);
+                                            }
+                                            var sign = 0 != (0x800&adc) ? -1 : 1;
+                                            if(sign < 0) {
+                                                adc = ~adc + 1;
+                                            }
+                                            // Is there a case where this is necessary?
+                                            // adc &= signals[j].mask;
+
+                                            adc &= 0x7FF;
+                                            adc *= sign;                                            
                                         }
 
-                                        var sign = 0 != (0x800&adc) ? -1 : 1;
-                                        if(sign < 0) {
-                                            adc = ~adc + 1;
-                                        }
-                                        // Is there a case where this is necessary?
-                                        // adc &= signals[j].mask;
-
-                                        adc &= 0x7FF;
-                                        adc *= sign;
                                         signalBase += 1.5;
                                         break;
                                     case 16:
-                                        adc = data.readInt16LE(signalBase);
+                                        if(skewedSignalBase>=data.length) {
+                                            adc = Math.NaN;
+                                        } else {
+                                            adc = data.readInt16LE(skewedSignalBase);
+                                        }
                                         signalBase += 2;
                                         break;
                                     default:
