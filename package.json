@@ -7,5 +7,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Jeff Plourde <jeff@jeffplourde.com> (http://www.jeffplourde.com)",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {}
 }

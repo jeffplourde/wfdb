@@ -1,5 +1,8 @@
 "use strict";
 
+var EventEmitter = require('events').EventEmitter;
+var util = require("util");
+
 var accepted_formats = {212: 12, 16: 16};
 
 
@@ -7,115 +10,123 @@ function WFDB(locator) {
 	this.locator = locator;
 }
 
-WFDB.fileLocator = function(fs, basePath) {
-	basePath = basePath || "";
-	return {
-		locateText: function (record, callback) {
-			fs.readFile(basePath+record, {encoding: 'ascii'}, function(err, data) {
-				callback(err, data);
-			});
-		},
-		locateBuffer: function(record, callback) {
-			fs.readFile(basePath+record, function(err, data) {
-				callback(err, data);
-			});			
-		}
-	};
-};
+function FileLocator(fs, basePath) {
+	this.fs = fs;
+	this.basePath = basePath || "";
+}
 
-WFDB.httpLocator = function(http, baseURI) {
-	return {
-		locateText: function (record, callback) {
-			var data;
-			http.get(baseURI+record, function(res) {
-				res.on('data', function(chunk) {
-					if(!data) { 
-						data = chunk.toString('ascii');
-					} else {
-						data += chunk.toString('ascii');
-					}
-				}).on('end', function() {
-					callback(null, data);
-				}).on('error', function(e) {
-					callback(e, null);
-				});
-			});
-		},
-		locateBuffer: function(record, callback) {
-			var data;
-			http.get(baseURI+record, function(res) {
-				res.on('data', function(chunk) {
-					if(!data) {
-						data = chunk;
-					} else {
-						data = Buffer.concat([data, chunk]);
-					}
-				}).on('end', function() {
-					callback(null, data);
-				}).on('error', function(e) {
-					callback(e, null);
-				});
-			});
-		}
-	};
-};
-
-WFDB.cachedLocator = function(fs, basePath, http, baseURI) {
-	var fileLocator = WFDB.fileLocator(fs, basePath);
-	function checkCache(record, callback) {
-		var fullPath = basePath + record;
-		if(!fs.existsSync(fullPath)) { 
-			var parent = fullPath.substring(0, fullPath.lastIndexOf("/"));
-			if(!fs.existsSync(parent)) { fs.mkdirSync(parent); }
-			var f = fs.openSync(fullPath, "w");
-			http.get(baseURI+record, function(res) {
-				res.on('data', function(chunk) {
-					fs.writeSync(f, chunk, 0, chunk.length);
-				});
-			}).on('end', function() {
-				fs.closeSync(f);
-				console.log("Closing file, issuing callback");
-				callback();
-			}).on('error', function(e) {
-				callback(e);
-			});
-		} else {
-			console.log("found file, issuing callback");
-			callback();
-		}
-	}
-
-	return {
-		locateText: function(record, callback) {
-			checkCache(record, function(e) {
-				if(e) {
-					callback(e, null);
-				} else {
-					console.log("cache callback, invoking fileLocator");
-					fileLocator.locateText(record, callback);
-				}
-			});
-		},
-		locateBuffer: function(record, callback) {
-			checkCache(record, function(e) {
-				if(e) {
-					callback(e, null);
-				} else {
-					console.log("cache callback, invoking fileLocator");
-					fileLocator.locateBuffer(record, callback);
-				}
-			});
-		}
-	};
-};
-
-WFDB.prototype.readData = function(record, cb_headers, cb_data) {
-	var locator = this.locator;
-	locator.locateText(record+'.hea', function(err, data) {
+FileLocator.prototype.locate = function(record, callback) {
+	var response = new EventEmitter();
+	callback(response);
+	this.fs.readFile(this.basePath+record, function(err, data) {
 		if(err) {
-			console.log(err);
-			process.exit(-1);
+			response.emit('error', err);
 		} else {
+			response.emit('data', data);
+		}
+	});		
+};
+
+WFDB.FileLocator = FileLocator;
+
+function HTTPLocator(http, baseURI) {
+	this.http = http;
+	this.baseURI = baseURI;
+}
+
+HTTPLocator.prototype.locate = function(record, callback) {
+	var response = new EventEmitter();
+	callback(response);
+	var data;
+	this.http.get(this.baseURI+record, function(res) {
+		res.on('data', function(chunk) {
+			if(!data) {
+				data = chunk;
+			} else {
+				data = Buffer.concat([data, chunk]);
+			}
+		}).on('end', function() {
+			response.emit('data', data);
+		}).on('error', function(e) {
+			response.emit('error', e);
+		});
+	});
+};
+
+WFDB.HTTPLocator = HTTPLocator;
+
+
+function Cache(fs, basePath, http, baseURI) {
+	this.fs = fs;
+	this.basePath = basePath;
+	this.http = http;
+	this.baseURI = baseURI;
+}
+
+Cache.prototype.locate = function(record, callback) {
+	var response = new EventEmitter();
+	callback(response);
+
+	var fullPath = this.basePath + record;
+
+	if(!this.fs.existsSync(fullPath)) {
+		// console.log("file doesn't exist");
+		var parent = fullPath.substring(0, fullPath.lastIndexOf("/"));
+		if(!this.fs.existsSync(parent)) { 
+			var parentPathParts = parent.split("/");
+			var parentPath = parentPathParts[0];
+			this.fs.mkdirSync(parentPath); 
+			for(var i = 1; i < parentPathParts.length; i++) {
+				parentPath = parentPath + "/" + parentPathParts[i];
+				this.fs.mkdirSync(parentPath); 
+			}
+		}
+		var self = this;
+		this.http.get(this.baseURI+record, function(res) {
+			res.once('end', function() {
+				response.emit('end');
+			});
+			res.pipe(self.fs.createWriteStream(fullPath));
+		});
+	} else {
+		response.emit('end');
+	}
+}
+
+function CachedLocator(fs, basePath, http, baseURI) {
+	this.fileLocator = new WFDB.FileLocator(fs, basePath);
+	this.cache = new Cache(fs, basePath, http, baseURI);
+}
+
+CachedLocator.prototype.locate = function(record, callback) {
+	var response = new EventEmitter();
+	callback(response);
+	// console.log("checking cache");
+	var self = this;
+	this.cache.locate(record, function(res) {
+		res.on('error', function(e) {
+			// console.log("error in cache");
+			response.emit('error', e);
+		}).on('end', function() {
+			console.log("delegating to file locator");
+			self.fileLocator.locate(record, callback);
+		});
+	});
+};
+
+WFDB.CachedLocator = CachedLocator;
+
+WFDB.prototype.readData = function(record, callback) {
+	var locator = this.locator;
+	var response = new EventEmitter();
+	callback(response);
+	// console.log(record);
+	locator.locate(record+'.hea', function(res) {
+		res.on('error', function(err) {
+			console.log(err);
+		}).on('data', function(data) {
+			data = data.toString('ascii');
+
 			// Comment lines
 			data = data.replace(/\s*#.*/g, "");
 
@@ -182,7 +193,8 @@ WFDB.prototype.readData = function(record, cb_headers, cb_data) {
 				}
 			}
 			info.signals = signals;
-			cb_headers && cb_headers(info);
+			response.emit('info', info);
+			
 			if(signals.length == 0) {
 				return;
 			}
@@ -200,11 +212,9 @@ WFDB.prototype.readData = function(record, cb_headers, cb_data) {
 
 
 
-			locator.locateBuffer(record+'.dat', function(err, data) {
-				if(err) {
-					console.log(err);
-					process.exit(-1);
-				} else {
+			locator.locate(record+'.dat', function(res) {
+				res.once('error', function(err) { response.emit('error', err); })
+				.on('data', function(data) {
 					var time_interval = 1000.0 / info.sampling_frequency;
 
 					var elapsed_ms = 0;
@@ -265,16 +275,17 @@ WFDB.prototype.readData = function(record, cb_headers, cb_data) {
 								        Math.floor(e%3600000/60000)+":"+
 								        Math.floor(e%60000/1000)+"."+
 								        Math.floor(e%1000);
-							cb_data((i/total_bytes_per_frame*highest_samples_per_frame+t),rows[t]);							
+							response.emit('data', (i/total_bytes_per_frame*highest_samples_per_frame+t),rows[t]);
 						}
 
 						elapsed_ms += time_interval;
 
 					}
-				}
+					response.emit('end');
+				});
 			});
-		}
-	});
+		}); // closes the on
+	}); // ends the locate call
 };
 
 module.exports = exports = WFDB;
