@@ -5,6 +5,8 @@ var util = require("util");
 var fs = require('fs');
 var http = require('http');
 
+var DEFGAIN = 200;
+
 var accepted_formats = {212: 12, 16: 16};
 
 
@@ -169,7 +171,7 @@ WFDB.prototype.readData = function(record, callback) {
                         samples_per_frame: (arr[3] | 0) || 1,
                         skew: arr[4] || 0,
                         byte_offset: arr[5] || 0,
-                        adc_gain: arr[6] || 200,
+                        adc_gain: arr[6] | 0 || DEFGAIN,
                         baseline: arr[7] || arr[10] || 0,
                         units: arr[8] || "",
                         adc_resolution: (arr[9] | 0) || 12, // covers only amplitude formats
