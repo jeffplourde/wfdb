@@ -12,15 +12,15 @@ var locator = new WFDB.FileLocator('test/data/');
 var wfdb = new WFDB(locator);
 
 var results = {rows: []};
-wfdb.readData(record, function(res) {
-    res.on('info', function(info) {
-        results['info'] = info;
+wfdb.readHeaderAndData(record, function(res) {
+    res.on('header', function(header) {
+        results['header'] = header;
     }).on('data', function(sequence, data) {
         results.rows.push(data);
     }).on('error', function(err) {
         console.log(err);
     }).on('end', function() {
-        console.log(JSON.stringify(results));
+        console.log(JSON.stringify(results, null, 4));
     });
 }); 
 

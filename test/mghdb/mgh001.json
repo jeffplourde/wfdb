@@ -101,7 +101,8 @@
             0.765
         ]
     ],
-    "info": {
+    "header": {
+        "record": "mghdb/mgh001",
         "name": "mgh001",
         "number_of_signals": "8",
         "sampling_frequency": "360",
@@ -254,6 +255,10 @@
                 "mask": 4095,
                 "bits_per_frame": 12
             }
-        ]
+        ],
+        "total_bits_per_frame": 96,
+        "highest_adc_resolution": 12,
+        "highest_samples_per_frame": 1,
+        "total_bytes_per_frame": 12
     }
 }

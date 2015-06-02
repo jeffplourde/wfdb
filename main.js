@@ -16,16 +16,16 @@ var locator = new WFDB.CachedLocator('data/', 'http://physionet.org/physiobank/d
 
 var wfdb = new WFDB(locator);
 
-wfdb.readData(record, function(res) {
-    res.on('info', function(info) {
-        console.log(info);
+wfdb.readHeaderAndData(record, function(res) {
+    res.on('header', function(header) {
+    	console.log(header);
     }).on('data', function(sequence, data) {
-        console.log(sequence+"\t"+data.join("\t"));
+        console.log(sequence+"\t"+data.join("\t"));	
     }).on('error', function(err) {
-        console.log(err);
-    }).on('end', function() {
-        // All Done
-    });
+		console.log(err);
+	}).on('end', function() {
+		// All done
+	});
 }); 
 
 

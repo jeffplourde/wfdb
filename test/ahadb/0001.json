@@ -1,1 +1,96 @@
-{"rows":[[-0.2075,-0.0525],[-0.195,-0.045],[-0.215,-0.0675],[-0.18,-0.0175],[-0.2025,-0.0275],[-0.21,-0.0475],[-0.2025,-0.0325],[-0.2025,-0.0175],[-0.2025,-0.0025],[-0.225,-0.0125]],"info":{"name":"0001","number_of_signals":"2","sampling_frequency":"250","counter_frequency":0,"base_counter_value":0,"number_of_samples_per_signal":"10","base_time":"0:0:0","signals":[{"file_name":"0001.dat","format":212,"samples_per_frame":1,"skew":0,"byte_offset":0,"adc_gain":400,"baseline":0,"units":"","adc_resolution":12,"adc_zero":0,"initial_value":"-83","checksum":"-16218","block_size":"0","description":"ECG","mask":4095,"bits_per_frame":12},{"file_name":"0001.dat","format":212,"samples_per_frame":1,"skew":0,"byte_offset":0,"adc_gain":400,"baseline":0,"units":"","adc_resolution":12,"adc_zero":0,"initial_value":"-21","checksum":"6575","block_size":"0","description":"ECG","mask":4095,"bits_per_frame":12}]}}
+{
+    "rows": [
+        [
+            -0.2075,
+            -0.0525
+        ],
+        [
+            -0.195,
+            -0.045
+        ],
+        [
+            -0.215,
+            -0.0675
+        ],
+        [
+            -0.18,
+            -0.0175
+        ],
+        [
+            -0.2025,
+            -0.0275
+        ],
+        [
+            -0.21,
+            -0.0475
+        ],
+        [
+            -0.2025,
+            -0.0325
+        ],
+        [
+            -0.2025,
+            -0.0175
+        ],
+        [
+            -0.2025,
+            -0.0025
+        ],
+        [
+            -0.225,
+            -0.0125
+        ]
+    ],
+    "header": {
+        "record": "ahadb/0001",
+        "name": "0001",
+        "number_of_signals": "2",
+        "sampling_frequency": "250",
+        "counter_frequency": 0,
+        "base_counter_value": 0,
+        "number_of_samples_per_signal": "10",
+        "base_time": "0:0:0",
+        "signals": [
+            {
+                "file_name": "0001.dat",
+                "format": 212,
+                "samples_per_frame": 1,
+                "skew": 0,
+                "byte_offset": 0,
+                "adc_gain": 400,
+                "baseline": 0,
+                "units": "",
+                "adc_resolution": 12,
+                "adc_zero": 0,
+                "initial_value": "-83",
+                "checksum": "-16218",
+                "block_size": "0",
+                "description": "ECG",
+                "mask": 4095,
+                "bits_per_frame": 12
+            },
+            {
+                "file_name": "0001.dat",
+                "format": 212,
+                "samples_per_frame": 1,
+                "skew": 0,
+                "byte_offset": 0,
+                "adc_gain": 400,
+                "baseline": 0,
+                "units": "",
+                "adc_resolution": 12,
+                "adc_zero": 0,
+                "initial_value": "-21",
+                "checksum": "6575",
+                "block_size": "0",
+                "description": "ECG",
+                "mask": 4095,
+                "bits_per_frame": 12
+            }
+        ],
+        "total_bits_per_frame": 24,
+        "highest_adc_resolution": 12,
+        "highest_samples_per_frame": 1,
+        "total_bytes_per_frame": 3
+    }
+}

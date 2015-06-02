@@ -1,1 +1,68 @@
-{"rows":[[0.18461538461538463],[0.18461538461538463],[0.16923076923076924],[0.18461538461538463],[0.18461538461538463],[0.18461538461538463],[0.18461538461538463],[0.18461538461538463],[0.18461538461538463],[0.2]],"info":{"name":"aami3a","number_of_signals":"1","sampling_frequency":"720","counter_frequency":0,"base_counter_value":0,"number_of_samples_per_signal":"10","base_time":"0:0:0","signals":[{"file_name":"aami3a.dat","format":16,"samples_per_frame":1,"skew":0,"byte_offset":0,"adc_gain":130,"baseline":2048,"units":"","adc_resolution":12,"adc_zero":2048,"initial_value":"2072","checksum":"-11941","block_size":"0","description":"ECG","mask":4095,"bits_per_frame":16}]}}
+{
+    "rows": [
+        [
+            0.18461538461538463
+        ],
+        [
+            0.18461538461538463
+        ],
+        [
+            0.16923076923076924
+        ],
+        [
+            0.18461538461538463
+        ],
+        [
+            0.18461538461538463
+        ],
+        [
+            0.18461538461538463
+        ],
+        [
+            0.18461538461538463
+        ],
+        [
+            0.18461538461538463
+        ],
+        [
+            0.18461538461538463
+        ],
+        [
+            0.2
+        ]
+    ],
+    "header": {
+        "record": "aami-ec13/aami3a",
+        "name": "aami3a",
+        "number_of_signals": "1",
+        "sampling_frequency": "720",
+        "counter_frequency": 0,
+        "base_counter_value": 0,
+        "number_of_samples_per_signal": "10",
+        "base_time": "0:0:0",
+        "signals": [
+            {
+                "file_name": "aami3a.dat",
+                "format": 16,
+                "samples_per_frame": 1,
+                "skew": 0,
+                "byte_offset": 0,
+                "adc_gain": 130,
+                "baseline": 2048,
+                "units": "",
+                "adc_resolution": 12,
+                "adc_zero": 2048,
+                "initial_value": "2072",
+                "checksum": "-11941",
+                "block_size": "0",
+                "description": "ECG",
+                "mask": 4095,
+                "bits_per_frame": 16
+            }
+        ],
+        "total_bits_per_frame": 16,
+        "highest_adc_resolution": 12,
+        "highest_samples_per_frame": 1,
+        "total_bytes_per_frame": 2
+    }
+}

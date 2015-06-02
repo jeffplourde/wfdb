@@ -1,1 +1,181 @@
-{"rows":[[275,88,0,8,0],[275,86,0,7,0],[275,86,0,6,0],[275,85,0,5,0],[275,85,0,4,0],[275,83,0,3,0],[275,83,0,11,0],[275,83,0,11,0],[275,83,0,11,0],[275,83,0,11,0]],"info":{"name":"032n","number_of_signals":"5","sampling_frequency":"0.9765625","counter_frequency":0,"base_counter_value":0,"number_of_samples_per_signal":"76172","base_time":"12:48:46","base_date":"16/05/1994","signals":[{"file_name":"032n.dat","format":16,"samples_per_frame":1,"skew":0,"byte_offset":0,"adc_gain":1,"baseline":0,"units":"mmHg","adc_resolution":16,"adc_zero":0,"initial_value":"275","checksum":"-29628","block_size":"0","description":"ABP","mask":65535,"bits_per_frame":16},{"file_name":"032n.dat","format":16,"samples_per_frame":1,"skew":0,"byte_offset":0,"adc_gain":1,"baseline":0,"units":"bpm","adc_resolution":16,"adc_zero":0,"initial_value":"88","checksum":"-1702","block_size":"0","description":"HR","mask":65535,"bits_per_frame":16},{"file_name":"032n.dat","format":16,"samples_per_frame":1,"skew":0,"byte_offset":0,"adc_gain":1,"baseline":0,"units":"bpm","adc_resolution":16,"adc_zero":0,"initial_value":"0","checksum":"954","block_size":"0","description":"PULSE","mask":65535,"bits_per_frame":16},{"file_name":"032n.dat","format":16,"samples_per_frame":1,"skew":0,"byte_offset":0,"adc_gain":1,"baseline":0,"units":"bpm","adc_resolution":16,"adc_zero":0,"initial_value":"8","checksum":"29078","block_size":"0","description":"RESP","mask":65535,"bits_per_frame":16},{"file_name":"032n.dat","format":16,"samples_per_frame":1,"skew":0,"byte_offset":0,"adc_gain":1,"baseline":0,"units":"%","adc_resolution":16,"adc_zero":0,"initial_value":"0","checksum":"1067","block_size":"0","description":"SpO2","mask":65535,"bits_per_frame":16}]}}
+{
+    "rows": [
+        [
+            275,
+            88,
+            0,
+            8,
+            0
+        ],
+        [
+            275,
+            86,
+            0,
+            7,
+            0
+        ],
+        [
+            275,
+            86,
+            0,
+            6,
+            0
+        ],
+        [
+            275,
+            85,
+            0,
+            5,
+            0
+        ],
+        [
+            275,
+            85,
+            0,
+            4,
+            0
+        ],
+        [
+            275,
+            83,
+            0,
+            3,
+            0
+        ],
+        [
+            275,
+            83,
+            0,
+            11,
+            0
+        ],
+        [
+            275,
+            83,
+            0,
+            11,
+            0
+        ],
+        [
+            275,
+            83,
+            0,
+            11,
+            0
+        ],
+        [
+            275,
+            83,
+            0,
+            11,
+            0
+        ]
+    ],
+    "header": {
+        "record": "mimicdb/numerics/032n",
+        "name": "032n",
+        "number_of_signals": "5",
+        "sampling_frequency": "0.9765625",
+        "counter_frequency": 0,
+        "base_counter_value": 0,
+        "number_of_samples_per_signal": "76172",
+        "base_time": "12:48:46",
+        "base_date": "16/05/1994",
+        "signals": [
+            {
+                "file_name": "032n.dat",
+                "format": 16,
+                "samples_per_frame": 1,
+                "skew": 0,
+                "byte_offset": 0,
+                "adc_gain": 1,
+                "baseline": 0,
+                "units": "mmHg",
+                "adc_resolution": 16,
+                "adc_zero": 0,
+                "initial_value": "275",
+                "checksum": "-29628",
+                "block_size": "0",
+                "description": "ABP",
+                "mask": 65535,
+                "bits_per_frame": 16
+            },
+            {
+                "file_name": "032n.dat",
+                "format": 16,
+                "samples_per_frame": 1,
+                "skew": 0,
+                "byte_offset": 0,
+                "adc_gain": 1,
+                "baseline": 0,
+                "units": "bpm",
+                "adc_resolution": 16,
+                "adc_zero": 0,
+                "initial_value": "88",
+                "checksum": "-1702",
+                "block_size": "0",
+                "description": "HR",
+                "mask": 65535,
+                "bits_per_frame": 16
+            },
+            {
+                "file_name": "032n.dat",
+                "format": 16,
+                "samples_per_frame": 1,
+                "skew": 0,
+                "byte_offset": 0,
+                "adc_gain": 1,
+                "baseline": 0,
+                "units": "bpm",
+                "adc_resolution": 16,
+                "adc_zero": 0,
+                "initial_value": "0",
+                "checksum": "954",
+                "block_size": "0",
+                "description": "PULSE",
+                "mask": 65535,
+                "bits_per_frame": 16
+            },
+            {
+                "file_name": "032n.dat",
+                "format": 16,
+                "samples_per_frame": 1,
+                "skew": 0,
+                "byte_offset": 0,
+                "adc_gain": 1,
+                "baseline": 0,
+                "units": "bpm",
+                "adc_resolution": 16,
+                "adc_zero": 0,
+                "initial_value": "8",
+                "checksum": "29078",
+                "block_size": "0",
+                "description": "RESP",
+                "mask": 65535,
+                "bits_per_frame": 16
+            },
+            {
+                "file_name": "032n.dat",
+                "format": 16,
+                "samples_per_frame": 1,
+                "skew": 0,
+                "byte_offset": 0,
+                "adc_gain": 1,
+                "baseline": 0,
+                "units": "%",
+                "adc_resolution": 16,
+                "adc_zero": 0,
+                "initial_value": "0",
+                "checksum": "1067",
+                "block_size": "0",
+                "description": "SpO2",
+                "mask": 65535,
+                "bits_per_frame": 16
+            }
+        ],
+        "total_bits_per_frame": 80,
+        "highest_adc_resolution": 16,
+        "highest_samples_per_frame": 1,
+        "total_bytes_per_frame": 10
+    }
+}
