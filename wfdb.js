@@ -5,6 +5,7 @@ var EventEmitter = require('events').EventEmitter;
 var readHeader = require('./wfdb-read-header.js');
 var readData = require('./wfdb-read-data.js');
 var Locator = require('./wfdb-locator.js');
+var Playback = require('./wfdb-playback.js');
 
 function WFDB(locator) {
     this.locator = locator;
@@ -17,6 +18,8 @@ WFDB.FileLocator = Locator.FileLocator;
 WFDB.HTTPLocator = Locator.HTTPLocator;
 
 WFDB.CachedLocator = Locator.CachedLocator;
+
+WFDB.Playback = Playback;
 
 WFDB.prototype.readHeader = function(record, callback) {
     readHeader(this, record, callback);
