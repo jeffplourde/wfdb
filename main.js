@@ -18,7 +18,8 @@ var wfdb = new WFDB(locator);
 
 var playback = new WFDB.Playback(wfdb);
 
-// playback.play(record, 10000, function(res) {
+// playback.play(record, {activeWindowMs: 10000, loop:true,
+// 	startTime: 3800000}, function(res) {
 // 	res.on('sample', function(signal, sample) {
 // 		console.log("Sample", signal, sample);
 // 	}).on('delete', function(signal, todelete) {
