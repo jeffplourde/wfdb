@@ -32,7 +32,7 @@ function playdata(record, alldata, options, response) {
         var lastIndex = ((currentTime - zeroTime) * alldata.header.sampling_frequency / 1000) | 0;
         var firstIndex = ((lastTime - zeroTime) * alldata.header.sampling_frequency / 1000) | 0;
 
-        console.log(zeroTime, lastTime, firstIndex, lastIndex, alldata.samples.length);
+        // console.log(zeroTime, lastTime, firstIndex, lastIndex, alldata.samples.length);
 
         // awkward
         if(lastIndex>=alldata.samples.length) {
