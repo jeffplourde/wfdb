@@ -84,6 +84,7 @@ Playback.prototype.play = function(record, options, callback) {
     this.wfdb.readHeaderAndData(record, function(res) {
         res.on('header', function(header) {
             alldata['header'] = header;
+            response.emit('header', header);
         }).on('data', function(sequence, data) {
             alldata.samples.push(data);
         }).on('error', function(err) {
