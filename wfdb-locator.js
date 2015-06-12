@@ -9,6 +9,32 @@ function FileLocator(basePath) {
     this.basePath = basePath || "";
 }
 
+FileLocator.prototype.locateRange = function(record, buffer, offset, length, position, callback) {
+    var response = new EventEmitter();
+    callback(response);
+    fs.open(this.basePath+record, "r", function(err, fd) {
+        if(err) {
+            response.emit('error', err);
+        } else {
+            // console.log("read", buffer, offset, length, position);
+            fs.read(fd, buffer, offset, length, position, function(err, bytesRead, buffer) {
+                if(err) {
+                    response.emit('error', err);
+                } else {
+                    //console.log("bytesRead", bytesRead, buffer);
+                    response.emit('data', bytesRead, buffer);
+                    fs.close(fd, function(err) {
+                        if(err) {
+                            response.emit('error', err);
+                        }
+                    });
+                }
+            });
+
+        }
+    });
+}
+
 FileLocator.prototype.locate = function(record, callback) {
     var response = new EventEmitter();
     callback(response);
@@ -102,6 +128,22 @@ function CachedLocator(basePath, baseURI) {
     this.fileLocator = new FileLocator(basePath);
     this.cache = new Cache(basePath, baseURI);
 }
+
+CachedLocator.prototype.locateRange = function(record, buffer, offset, length, position, callback) {
+    var response = new EventEmitter();
+    callback(response);
+    // console.log("checking cache");
+    var self = this;
+    this.cache.locate(record, function(res) {
+        res.on('error', function(e) {
+            // console.log("error in cache");
+            response.emit('error', e);
+        }).on('end', function() {
+            // console.log("delegating to file locator");
+            self.fileLocator.locateRange(record, buffer, offset, length, position, callback);
+        });
+    });    
+};
 
 CachedLocator.prototype.locate = function(record, callback) {
     var response = new EventEmitter();
