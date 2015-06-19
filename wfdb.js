@@ -3,9 +3,11 @@
 var EventEmitter = require('events').EventEmitter;
 
 var readHeader = require('./wfdb-read-header.js');
-var readData = require('./wfdb-read-data.js');
-var Locator = require('./wfdb-locator.js');
-var Playback = require('./wfdb-playback.js');
+var readData   = require('./wfdb-read-data.js');
+var util       = require('./wfdb-util.js');
+var Locator    = require('./wfdb-locator.js');
+var Playback   = require('./wfdb-playback.js');
+
 
 function WFDB(locator) {
     this.locator = locator;
@@ -53,6 +55,14 @@ WFDB.prototype.readHeaderAndData = function(record, callback) {
             });
         });
     });
+};
+
+WFDB.prototype.dblist = function(callback) {
+    util.dblist(this, callback);
+};
+
+WFDB.prototype.rlist = function(database, callback) {
+    util.rlist(this, database, callback);
 };
 
 module.exports = exports = WFDB;
