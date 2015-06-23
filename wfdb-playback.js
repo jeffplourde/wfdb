@@ -51,21 +51,24 @@ function playdata(record, alldata, options, response) {
         }
 
         // console.log("emit " + firstIndex + " to " + lastIndex);
-        for(var s = 0; s < alldata.header.signals.length; s++) {
-            var ee = emittersByOrdinal[s];
-            for(var i = firstIndex; i < lastIndex; i++) {
-                // console.log(i + "   " + alldata.samples[i]);
-                var tm = Math.floor(zeroTime+1000/alldata.header.sampling_frequency*i);
-                // console.log("add tm="+tm+" zeroTime="+zeroTime+" sf="+alldata.header.sampling_frequency+" i="+i);
-                ee.active.push(tm);
-                response.emit('sample', record+'/'+alldata.header.signals[s].description, {"tm":tm, val:alldata.samples[i][s]});
+        if(EventEmitter.listenerCount(response, 'sample')>0) {
+            for(var s = 0; s < alldata.header.signals.length; s++) {
+                var ee = emittersByOrdinal[s];
+                for(var i = firstIndex; i < lastIndex; i++) {
+                    // console.log(i + "   " + alldata.samples[i]);
+                    var tm = Math.floor(zeroTime+1000/alldata.header.sampling_frequency*i);
+                    // console.log("add tm="+tm+" zeroTime="+zeroTime+" sf="+alldata.header.sampling_frequency+" i="+i);
+                    ee.active.push(tm);
+                    response.emit('sample', record+'/'+alldata.header.signals[s].description, {"tm":tm, val:alldata.samples[i][s]});
+                }
+                while(ee.active.length>0&&(currentTime-ee.active[0])>=options.activeWindowMs) {
+                    var tm = ee.active.shift();
+                    response.emit('delete', record+'/'+alldata.header.signals[s].description, tm);
+                }
             }
-            while(ee.active.length>0&&(currentTime-ee.active[0])>=options.activeWindowMs) {
-                var tm = ee.active.shift();
-                response.emit('delete', record+'/'+alldata.header.signals[s].description, tm);
-            }
+        } else {
+            //console.log("no listeners, nothing to do");
         }
-
         lastTime = currentTime;
     }, 1000);
 }
@@ -144,58 +147,62 @@ function playdataFromFile(record, header, wfdb, options, response) {
         // console.log("CurrentTime"+currentTime);
 
         // console.log("emit ", currentTime, firstIndex, lastIndex);
-        wfdb.readFrames(wfdb, header, firstIndex, lastIndex, function(res) {
-            var listener = function(batchdata) {
-                var samples = {};
-                var deletes = {};
+        if(EventEmitter.listenerCount(response, 'samples')>0 ||
+           EventEmitter.listenerCount(response, 'sample')>0) {
+            wfdb.readFrames(wfdb, header, firstIndex, lastIndex, function(res) {
+                var listener = function(batchdata) {
+                    var samples = {};
+                    var deletes = {};
 
-                for(var t = 0; t < batchdata.length; t++) {
-                    var tm = zeroTime + batchdata[t].elapsed_ms;
-                    // console.log(idx, data);
-                    // var tm = Math.floor(zeroTime+1000/header.sampling_frequency*idx);
-                    for(var s = 0; s < header.signals.length; s++) {
-                        var descriptor = record+'/'+header.signals[s].description
-                        var ee = emittersByOrdinal[s];
-                        // for(var i = firstIndex; i < lastIndex; i++) {
-                            // console.log(i + "   " + alldata.samples[i]);
-                            
-                            // console.log("add tm="+tm+" zeroTime="+zeroTime+" sf="+header.sampling_frequency+" i="+i);
-                            ee.active.push(tm);
-                            
-                            if(!samples[descriptor]) {
-                                samples[descriptor] = [{"tm":tm, val:batchdata[t].data[s]}];
-                            } else {
-                                samples[descriptor].push({"tm":tm, val:batchdata[t].data[s]});
+                    for(var t = 0; t < batchdata.length; t++) {
+                        var tm = zeroTime + batchdata[t].elapsed_ms;
+                        // console.log(idx, data);
+                        // var tm = Math.floor(zeroTime+1000/header.sampling_frequency*idx);
+                        for(var s = 0; s < header.signals.length; s++) {
+                            var descriptor = record+'/'+header.signals[s].description
+                            var ee = emittersByOrdinal[s];
+                            // for(var i = firstIndex; i < lastIndex; i++) {
+                                // console.log(i + "   " + alldata.samples[i]);
+                                
+                                // console.log("add tm="+tm+" zeroTime="+zeroTime+" sf="+header.sampling_frequency+" i="+i);
+                                ee.active.push(tm);
+                                
+                                if(!samples[descriptor]) {
+                                    samples[descriptor] = [{"tm":tm, val:batchdata[t].data[s]}];
+                                } else {
+                                    samples[descriptor].push({"tm":tm, val:batchdata[t].data[s]});
+                                }
+                                response.emit('sample', descriptor, {"tm":tm, val:batchdata[t].data[s]});
+                            // }
+                            while(ee.active.length>0&&(currentTime-ee.active[0])>=options.activeWindowMs) {
+                                // console.log(currentTime, ee.active[0]);
+                                var tm = ee.active.shift();
+                                if(!deletes[descriptor]) {
+                                    deletes[descriptor] = [tm];
+                                } else {
+                                    deletes[descriptor].push(tm);
+                                }
+                                response.emit('delete', descriptor, tm);
                             }
-                            response.emit('sample', descriptor, {"tm":tm, val:batchdata[t].data[s]});
-                        // }
-                        while(ee.active.length>0&&(currentTime-ee.active[0])>=options.activeWindowMs) {
-                            // console.log(currentTime, ee.active[0]);
-                            var tm = ee.active.shift();
-                            if(!deletes[descriptor]) {
-                                deletes[descriptor] = [tm];
-                            } else {
-                                deletes[descriptor].push(tm);
-                            }
-                            response.emit('delete', descriptor, tm);
                         }
                     }
-                }
-                response.emit('samples', samples);
-                response.emit('deletes', deletes);
-            };
-            res.on('batch', listener).on('error', function(err) {
-                response.emit('error', err);
-            }).on('end', function() {
-                // console.log("DONE", listener);
+                    response.emit('samples', samples);
+                    response.emit('deletes', deletes);
+                };
+                res.on('batch', listener).on('error', function(err) {
+                    response.emit('error', err);
+                }).on('end', function() {
+                    // console.log("DONE", listener);
 
-                if(listener) {
-                    res.removeListener('batch', listener);
-                    listener = null;
-                }
+                    if(listener) {
+                        res.removeListener('batch', listener);
+                        listener = null;
+                    }
+                });
             });
-        });
-
+        } else {
+            //console.log("No listeners");
+        }
 
         lastTime = currentTime;
     }, 1000);
