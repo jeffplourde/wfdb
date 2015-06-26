@@ -46,6 +46,9 @@ WFDB.prototype.readHeaderAndData = function(record, callback) {
             response.emit('header', header);
             self.readData(header, function(res) {
                 res.on('error', function(err) { response.emit('error', err); })
+                .on('batch', function(batchdata) {
+                    response.emit('batch', batchdata);
+                })
                 .on('data', function(sequence, data) {
                     response.emit('data', sequence, data);
                 })
