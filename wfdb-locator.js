@@ -131,7 +131,7 @@ Cache.prototype.locate = function(record, callback) {
 
     var fullPath = this.basePath + record;
 
-    if(!fs.existsSync(fullPath)) {
+    if(!fs.existsSync(fullPath) || fs.statSync(fullPath).size == 0) {
         // console.log("file doesn't exist");
         var parent = fullPath.substring(0, fullPath.lastIndexOf("/"));
         // TODO there are numerous packages that supply mkdir -p functionality
