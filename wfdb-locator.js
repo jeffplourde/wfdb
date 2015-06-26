@@ -6,6 +6,8 @@ var fs = require('graceful-fs');
 var http = require('http');
 var url = require('url');
 
+var httpAgent = new http.Agent({keepAlive: true, maxSockets: 3, maxFreeSockets: 3});
+
 function FileLocator(basePath) {
     this.basePath = basePath || "";
 }
@@ -52,7 +54,6 @@ module.exports.FileLocator = FileLocator;
 
 function HTTPLocator(baseURI) {
     this.baseURI = baseURI;
-    this.agent = new http.Agent({keepAlive: true, maxSockets: 1, maxFreeSockets: 1});
 }
 
 HTTPLocator.prototype.locateRange = function(record, buffer, offset, length, position, callback) {
@@ -70,7 +71,7 @@ HTTPLocator.prototype.locateRange = function(record, buffer, offset, length, pos
             // byte range here is inclusive and zero-indexed
             'Range': 'bytes='+position+'-'+(position+length-1)
         },
-        'agent': this.agent
+        'agent': httpAgent
     };
 
     http.get(opts, function(res) {
@@ -104,7 +105,7 @@ HTTPLocator.prototype.locate = function(record, callback) {
         hostname: reqinfo.hostname,
         port: reqinfo.port,
         path: reqinfo.pathname,
-        'agent': this.agent
+        'agent': httpAgent
     };
     http.get(opts, function(res) {
         if(res.statusCode != 200) {
@@ -132,7 +133,6 @@ module.exports.HTTPLocator = HTTPLocator;
 function Cache(basePath, baseURI) {
     this.basePath = basePath;
     this.baseURI = baseURI;
-    this.agent = new http.Agent({keepAlive: true, maxSockets: 1, maxFreeSockets: 1});
 }
 
 Cache.prototype.locate = function(record, callback) {
@@ -164,8 +164,9 @@ Cache.prototype.locate = function(record, callback) {
             hostname: reqinfo.hostname,
             port: reqinfo.port,
             path: reqinfo.pathname,
-            'agent': this.agent
+            'agent': httpAgent
         };
+
         http.get(opts, function(res) {
             if(res.statusCode != 200) {
                 response.emit('error', "Failed HTTP GET with status code: " + res.statusCode + " (" + self.baseURI+record+")");
