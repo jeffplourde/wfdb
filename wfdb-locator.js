@@ -2,7 +2,7 @@
 
 var EventEmitter = require('events').EventEmitter;
 var util = require("util");
-var fs = require('fs');
+var fs = require('graceful-fs');
 var http = require('http');
 var url = require('url');
 

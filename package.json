@@ -8,7 +8,9 @@
   },
   "author": "Jeff Plourde <jeff@jeffplourde.com> (http://www.jeffplourde.com)",
   "license": "ISC",
-  "dependencies": {},
+  "dependencies": {
+    "graceful-fs": "^3.0.8"
+  },
   "devDependencies": {
     "mocha": "^2.2.5"
   }
