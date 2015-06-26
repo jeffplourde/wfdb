@@ -28,12 +28,13 @@ exports.rlist = function(wfdb, database, callback) {
         res.once('error', function(err) { response.emit('error', err); })
         .on('data', function(data) {
             var lines = data.toString('ascii').split("\n");
-            var re = /^(.+)\w*$/;
+
+            var re = /^([^/\n\r]+)\/?\s*$/;
             var recs = [];
             for(var i = 0; i < lines.length; i++) {
                 var m = lines[i].match(re);
-                if(m) {
-                    recs.push(m[0]);
+                if(m && m.length > 1) {
+                    recs.push(m[1]);
                 }
             }
             response.emit('rlist', recs);
