@@ -49,13 +49,18 @@ function processFrames(elapsed_ms, header, data, length, response) {
                         } else {
                             adc = data.readInt16LE(skewedSignalBase);
                         }
+
+                        if(adc == -1 << 15) {
+                            // WFDB calls this value VFILL
+                            adc = null;
+                        }
                         signalBase += 2;
                         break;
                     default:
                         console.log("Unknown format " + header.signals[j].format);
                         break;
                 }
-                var value = (adc - header.signals[j].baseline) / header.signals[j].adc_gain;
+                var value = null == adc ? null : ((adc - header.signals[j].baseline) / header.signals[j].adc_gain);
                 // Repeat the value (upsample) 
                 var upsample_rate = header.highest_samples_per_frame / header.signals[j].samples_per_frame;
                 //console.log(signals[j].description + " upsample at " + upsample_rate + " highest " + highest_samples_per_frame + " this " + signals[j].samples_per_frame);
