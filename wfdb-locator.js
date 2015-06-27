@@ -123,7 +123,7 @@ HTTPLocator.prototype.locate = function(record, callback) {
                 response.emit('error', e);
             });
         }
-    });
+    }).on('error', function(err) { response.emit('error', err); });
 };
 
 
@@ -171,12 +171,15 @@ Cache.prototype.locate = function(record, callback) {
             if(res.statusCode != 200) {
                 response.emit('error', "Failed HTTP GET with status code: " + res.statusCode + " (" + self.baseURI+record+")");
             } else {
-                res.once('end', function() {
+                res.on('error', function(err) {
+                    response.emit('error', err);
+                })
+                .once('end', function() {
                     response.emit('end');
                 });
                 res.pipe(fs.createWriteStream(fullPath));
             }
-        });
+        }).on('error', function(err) { response.emit('error', err); });
     } else {
         response.emit('end');
     }
