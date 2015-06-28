@@ -104,11 +104,11 @@
     "header": {
         "record": "mghdb/mgh001",
         "name": "mgh001",
-        "number_of_signals": "8",
-        "sampling_frequency": "360",
-        "counter_frequency": "0.476",
+        "number_of_signals": 8,
+        "sampling_frequency": 360,
+        "counter_frequency": 0.476,
         "base_counter_value": 0,
-        "number_of_samples_per_signal": "10",
+        "number_of_samples_per_signal": 10,
         "base_time": "0:0:0",
         "signals": [
             {
@@ -256,6 +256,7 @@
                 "bits_per_frame": 12
             }
         ],
+        "segments": [],
         "total_bits_per_frame": 96,
         "highest_adc_resolution": 12,
         "highest_samples_per_frame": 1,

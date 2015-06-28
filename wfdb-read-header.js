@@ -20,7 +20,7 @@ module.exports = exports = function(wfdb, record, callback) {
 
             var lines = data.split("\n");
             // console.log("A HEADER STARTS WITH " + lines[0]);
-            var re = /^(\S+)(?:\/(\d+))?\s+(\d+)\s+([0-9e\-.]+)?(?:\/([0-9e\-.]+))?(?:\(([\d-.]+)\))?(?:\s+(\d+))?(?:\s+(\S+))?(?:\s+(\S+))?/;
+            var re = /^(\w+)(?:\/(\d+))?\s+(\d+)\s+([0-9e\-.]+)?(?:\/([0-9e\-.]+))?(?:\(([\d-.]+)\))?(?:\s+(\d+))?(?:\s+(\S+))?(?:\s+(\S+))?/;
 
             var header = re.exec(lines[0]);
             if(!header) {
@@ -30,15 +30,16 @@ module.exports = exports = function(wfdb, record, callback) {
             var info = {
             	"record": record,
                 name: header[1],
-                number_of_segments: header[2],
-                number_of_signals: header[3] || 0,
-                sampling_frequency: header[4] || 250,
-                counter_frequency: header[5] || 0,
-                base_counter_value: header[6] || 0,
-                number_of_samples_per_signal: header[7],
+                number_of_segments: header[2]?+header[2]:header[2],
+                number_of_signals: +header[3] || 0,
+                sampling_frequency: +header[4] || 250,
+                counter_frequency: +header[5] || 0,
+                base_counter_value: +header[6] || 0,
+                number_of_samples_per_signal: +header[7],
                 base_time: header[8] || '0:0:0',
                 base_date: header[9],
                 signals: [],
+                segments: [],
                 total_bits_per_frame: 0,
                 highest_adc_resolution: 0,
                 highest_samples_per_frame: 0

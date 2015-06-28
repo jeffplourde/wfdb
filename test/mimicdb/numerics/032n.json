@@ -74,11 +74,11 @@
     "header": {
         "record": "mimicdb/numerics/032n",
         "name": "032n",
-        "number_of_signals": "5",
-        "sampling_frequency": "0.9765625",
+        "number_of_signals": 5,
+        "sampling_frequency": 0.9765625,
         "counter_frequency": 0,
         "base_counter_value": 0,
-        "number_of_samples_per_signal": "76172",
+        "number_of_samples_per_signal": 76172,
         "base_time": "12:48:46",
         "base_date": "16/05/1994",
         "signals": [
@@ -173,6 +173,7 @@
                 "bits_per_frame": 16
             }
         ],
+        "segments": [],
         "total_bits_per_frame": 80,
         "highest_adc_resolution": 16,
         "highest_samples_per_frame": 1,

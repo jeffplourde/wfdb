@@ -34,11 +34,11 @@
     "header": {
         "record": "apnea-ecg/a01",
         "name": "a01",
-        "number_of_signals": "1",
-        "sampling_frequency": "100",
+        "number_of_signals": 1,
+        "sampling_frequency": 100,
         "counter_frequency": 0,
         "base_counter_value": 0,
-        "number_of_samples_per_signal": "10",
+        "number_of_samples_per_signal": 10,
         "base_time": "0:0:0",
         "signals": [
             {
@@ -60,6 +60,7 @@
                 "bits_per_frame": 16
             }
         ],
+        "segments": [],
         "total_bits_per_frame": 16,
         "highest_adc_resolution": 12,
         "highest_samples_per_frame": 1,

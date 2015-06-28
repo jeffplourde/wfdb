@@ -10244,11 +10244,11 @@
     "header": {
         "record": "drivedb/drive01",
         "name": "drive02",
-        "number_of_signals": "6",
-        "sampling_frequency": "15.5",
+        "number_of_signals": 6,
+        "sampling_frequency": 15.5,
         "counter_frequency": 0,
         "base_counter_value": 0,
-        "number_of_samples_per_signal": "10",
+        "number_of_samples_per_signal": 10,
         "base_time": "0:0:0",
         "signals": [
             {
@@ -10360,6 +10360,7 @@
                 "bits_per_frame": 16
             }
         ],
+        "segments": [],
         "total_bits_per_frame": 2656,
         "highest_adc_resolution": 16,
         "highest_samples_per_frame": 128,

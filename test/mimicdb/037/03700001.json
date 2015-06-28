@@ -204,11 +204,11 @@
     "header": {
         "record": "mimicdb/037/03700001",
         "name": "03700001",
-        "number_of_signals": "3",
-        "sampling_frequency": "125",
+        "number_of_signals": 3,
+        "sampling_frequency": 125,
         "counter_frequency": 0,
         "base_counter_value": 0,
-        "number_of_samples_per_signal": "75000",
+        "number_of_samples_per_signal": 75000,
         "base_time": "11:27:45",
         "base_date": "14/08/1994",
         "signals": [
@@ -267,6 +267,7 @@
                 "bits_per_frame": 12
             }
         ],
+        "segments": [],
         "total_bits_per_frame": 72,
         "highest_adc_resolution": 12,
         "highest_samples_per_frame": 4,

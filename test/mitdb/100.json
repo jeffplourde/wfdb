@@ -44,11 +44,11 @@
     "header": {
         "record": "mitdb/100",
         "name": "100",
-        "number_of_signals": "2",
-        "sampling_frequency": "360",
+        "number_of_signals": 2,
+        "sampling_frequency": 360,
         "counter_frequency": 0,
         "base_counter_value": 0,
-        "number_of_samples_per_signal": "10",
+        "number_of_samples_per_signal": 10,
         "base_time": "0:0:0",
         "signals": [
             {
@@ -88,6 +88,7 @@
                 "bits_per_frame": 12
             }
         ],
+        "segments": [],
         "total_bits_per_frame": 24,
         "highest_adc_resolution": 11,
         "highest_samples_per_frame": 1,

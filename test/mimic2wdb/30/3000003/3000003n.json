@@ -124,11 +124,11 @@
     "header": {
         "record": "mimic2wdb/30/3000003/3000003n",
         "name": "3000003n",
-        "number_of_signals": "10",
-        "sampling_frequency": "0.0166666666667",
-        "counter_frequency": "125",
+        "number_of_signals": 10,
+        "sampling_frequency": 0.0166666666667,
+        "counter_frequency": 125,
         "base_counter_value": 0,
-        "number_of_samples_per_signal": "10",
+        "number_of_samples_per_signal": 10,
         "base_time": "19:44:07.664",
         "signals": [
             {
@@ -312,6 +312,7 @@
                 "bits_per_frame": 16
             }
         ],
+        "segments": [],
         "total_bits_per_frame": 160,
         "highest_adc_resolution": 16,
         "highest_samples_per_frame": 1,
