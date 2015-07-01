@@ -3,7 +3,6 @@ var EventEmitter = require('events').EventEmitter;
 
 function processFrames(base_sample_number, header, data, length, signal_count, response) {
     //var time_interval = 1000.0 / header.sampling_frequency;
-    // console.log("processFrames", elapsed_ms, data.length);
     // Go through the data frame by frame
     //console.log("TTL:"+total_bytes_per_frame);
     
@@ -91,7 +90,6 @@ function processFrames(base_sample_number, header, data, length, signal_count, r
         }
 
         for(var t = 0; t < rows.length; t++) {
-            // var e = elapsed_ms + time_interval / header.highest_samples_per_frame;
             // var time =  Math.floor(e/3600000)+":"+
             //             Math.floor(e%3600000/60000)+":"+
             //             Math.floor(e%60000/1000)+"."+
@@ -152,7 +150,6 @@ exports.readFrames = function(wfdb, header, start, end, callback) {
                     // TODO this check should be "above" here to eliminate segments not relevant to the requested range
                     if(realEnd>realStart) {
                         var data = new Buffer(header.total_bytes_per_frame*(realEnd-realStart));
-                        var elapsed_ms = realStart / header.sampling_frequency * 1000;
 
                         wfdb.locator.locateRange(header.record+'.dat', data, 0, data.length, (realStart-header.start)*header.total_bytes_per_frame,  function(res) {
                             res.once('error', function(err) { response.emit('error', err); })
@@ -179,8 +176,7 @@ exports.readFrames = function(wfdb, header, start, end, callback) {
         wfdb.locator.locateRange(header.record+'.dat', data, 0, data.length, start*header.total_bytes_per_frame, function(res) {
             res.once('error', function(err) { response.emit('error', err); })
            .on('data', function(bytesRead, data) {
-                // console.log("See data, calling processFrames");
-                elapsed_ms = processFrames(start, header, data, bytesRead, header.signals.length, response);
+                processFrames(start, header, data, bytesRead, header.signals.length, response);
                 response.emit('end');
             });
         });
