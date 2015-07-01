@@ -97,6 +97,7 @@
                 "checksum": "-29628",
                 "block_size": "0",
                 "description": "ABP",
+                "index": 0,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -115,6 +116,7 @@
                 "checksum": "-1702",
                 "block_size": "0",
                 "description": "HR",
+                "index": 1,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -133,6 +135,7 @@
                 "checksum": "954",
                 "block_size": "0",
                 "description": "PULSE",
+                "index": 2,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -151,6 +154,7 @@
                 "checksum": "29078",
                 "block_size": "0",
                 "description": "RESP",
+                "index": 3,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -169,6 +173,7 @@
                 "checksum": "1067",
                 "block_size": "0",
                 "description": "SpO2",
+                "index": 4,
                 "mask": 65535,
                 "bits_per_frame": 16
             }

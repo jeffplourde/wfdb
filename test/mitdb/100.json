@@ -66,6 +66,7 @@
                 "checksum": "-22131",
                 "block_size": "0",
                 "description": "MLII",
+                "index": 0,
                 "mask": 2047,
                 "bits_per_frame": 12
             },
@@ -84,6 +85,7 @@
                 "checksum": "20052",
                 "block_size": "0",
                 "description": "V5",
+                "index": 1,
                 "mask": 2047,
                 "bits_per_frame": 12
             }

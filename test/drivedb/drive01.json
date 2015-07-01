@@ -10266,6 +10266,7 @@
                 "checksum": "9084",
                 "block_size": "0",
                 "description": "ECG",
+                "index": 0,
                 "mask": 65535,
                 "bits_per_frame": 512
             },
@@ -10284,6 +10285,7 @@
                 "checksum": "11155",
                 "block_size": "0",
                 "description": "EMG",
+                "index": 1,
                 "mask": 65535,
                 "bits_per_frame": 2048
             },
@@ -10302,6 +10304,7 @@
                 "checksum": "-24751",
                 "block_size": "0",
                 "description": "foot GSR",
+                "index": 2,
                 "mask": 65535,
                 "bits_per_frame": 32
             },
@@ -10320,6 +10323,7 @@
                 "checksum": "20466",
                 "block_size": "0",
                 "description": "hand GSR",
+                "index": 3,
                 "mask": 65535,
                 "bits_per_frame": 32
             },
@@ -10338,6 +10342,7 @@
                 "checksum": "18582",
                 "block_size": "0",
                 "description": "HR",
+                "index": 4,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -10356,6 +10361,7 @@
                 "checksum": "-19336",
                 "block_size": "0",
                 "description": "RESP",
+                "index": 5,
                 "mask": 65535,
                 "bits_per_frame": 16
             }

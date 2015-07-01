@@ -66,6 +66,7 @@
                 "checksum": "17579",
                 "block_size": "0",
                 "description": "ECG1",
+                "index": 0,
                 "mask": 4095,
                 "bits_per_frame": 12
             },
@@ -84,6 +85,7 @@
                 "checksum": "21162",
                 "block_size": "0",
                 "description": "ECG2",
+                "index": 1,
                 "mask": 4095,
                 "bits_per_frame": 12
             }

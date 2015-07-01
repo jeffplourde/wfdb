@@ -227,6 +227,7 @@
                 "checksum": "23953",
                 "block_size": "0",
                 "description": "MCL1 ",
+                "index": 0,
                 "mask": 4095,
                 "bits_per_frame": 48
             },
@@ -245,6 +246,7 @@
                 "checksum": "-1744",
                 "block_size": "0",
                 "description": "ABP ",
+                "index": 1,
                 "mask": 4095,
                 "bits_per_frame": 12
             },
@@ -263,6 +265,7 @@
                 "checksum": "-10208",
                 "block_size": "0",
                 "description": "RESP ",
+                "index": 2,
                 "mask": 4095,
                 "bits_per_frame": 12
             }

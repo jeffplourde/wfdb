@@ -126,6 +126,7 @@
                 "checksum": "1271",
                 "block_size": "0",
                 "description": "ECG lead I",
+                "index": 0,
                 "mask": 4095,
                 "bits_per_frame": 12
             },
@@ -144,6 +145,7 @@
                 "checksum": "50883",
                 "block_size": "0",
                 "description": "ECG lead II",
+                "index": 1,
                 "mask": 4095,
                 "bits_per_frame": 12
             },
@@ -162,6 +164,7 @@
                 "checksum": "64363",
                 "block_size": "0",
                 "description": "ECG lead V",
+                "index": 2,
                 "mask": 4095,
                 "bits_per_frame": 12
             },
@@ -180,6 +183,7 @@
                 "checksum": "44555",
                 "block_size": "0",
                 "description": "ART",
+                "index": 3,
                 "mask": 4095,
                 "bits_per_frame": 12
             },
@@ -198,6 +202,7 @@
                 "checksum": "11090",
                 "block_size": "0",
                 "description": "PAP",
+                "index": 4,
                 "mask": 4095,
                 "bits_per_frame": 12
             },
@@ -216,6 +221,7 @@
                 "checksum": "53636",
                 "block_size": "0",
                 "description": "CVP",
+                "index": 5,
                 "mask": 4095,
                 "bits_per_frame": 12
             },
@@ -234,6 +240,7 @@
                 "checksum": "47520",
                 "block_size": "0",
                 "description": "Resp. Imp.",
+                "index": 6,
                 "mask": 4095,
                 "bits_per_frame": 12
             },
@@ -252,6 +259,7 @@
                 "checksum": "35980",
                 "block_size": "0",
                 "description": "CO2",
+                "index": 7,
                 "mask": 4095,
                 "bits_per_frame": 12
             }

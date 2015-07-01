@@ -146,6 +146,7 @@
                 "checksum": "17429",
                 "block_size": "0",
                 "description": "HR",
+                "index": 0,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -164,6 +165,7 @@
                 "checksum": "9699",
                 "block_size": "0",
                 "description": "ABPSys",
+                "index": 1,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -182,6 +184,7 @@
                 "checksum": "-26878",
                 "block_size": "0",
                 "description": "ABPDias",
+                "index": 2,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -200,6 +203,7 @@
                 "checksum": "-30101",
                 "block_size": "0",
                 "description": "ABPMean",
+                "index": 3,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -218,6 +222,7 @@
                 "checksum": "-24635",
                 "block_size": "0",
                 "description": "PULSE",
+                "index": 4,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -236,6 +241,7 @@
                 "checksum": "-10272",
                 "block_size": "0",
                 "description": "RESP",
+                "index": 5,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -254,6 +260,7 @@
                 "checksum": "32334",
                 "block_size": "0",
                 "description": "SpO2",
+                "index": 6,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -272,6 +279,7 @@
                 "checksum": "10365",
                 "block_size": "0",
                 "description": "NBPSys",
+                "index": 7,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -290,6 +298,7 @@
                 "checksum": "5933",
                 "block_size": "0",
                 "description": "NBPDias",
+                "index": 8,
                 "mask": 65535,
                 "bits_per_frame": 16
             },
@@ -308,6 +317,7 @@
                 "checksum": "-25149",
                 "block_size": "0",
                 "description": "NBPMean",
+                "index": 9,
                 "mask": 65535,
                 "bits_per_frame": 16
             }

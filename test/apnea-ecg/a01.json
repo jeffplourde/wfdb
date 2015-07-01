@@ -56,6 +56,7 @@
                 "checksum": "5827",
                 "block_size": "0",
                 "description": "ECG",
+                "index": 0,
                 "mask": 4095,
                 "bits_per_frame": 16
             }
