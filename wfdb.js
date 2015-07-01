@@ -31,8 +31,8 @@ WFDB.prototype.readData = function(header, callback) {
     readData.readEntireRecord(this, header, callback);
 };
 
-WFDB.prototype.readFrames = function(wfdb, header, start, end, callback) {
-    readData.readFrames(wfdb, header, start, end, callback);
+WFDB.prototype.readFrames = function(header, start, end, callback) {
+    readData.readFrames(this, header, start, end, callback);
 };
 
 WFDB.prototype.readHeaderAndData = function(record, callback) {

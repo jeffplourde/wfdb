@@ -149,7 +149,7 @@ function playdataFromFile(record, header, wfdb, options, response) {
         // console.log("emit ", currentTime, firstIndex, lastIndex);
         if(EventEmitter.listenerCount(response, 'samples')>0 ||
            EventEmitter.listenerCount(response, 'sample')>0) {
-            wfdb.readFrames(wfdb, header, firstIndex, lastIndex, function(res) {
+            wfdb.readFrames(header, firstIndex, lastIndex, function(res) {
                 var listener = function(batchdata) {
                     var samples = {};
                     var deletes = {};
