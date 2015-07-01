@@ -19,6 +19,19 @@ function readHeader(wfdb, record, callback) {
             data = data.replace(/^\s*$/gm, "");
 
             var lines = data.split("\n");
+
+            // TODO Capture commentary info
+            // TODO comments interleaved with signal descriptors will not work
+            while(lines.length > 0 && lines[0].length == 0) {
+                lines.shift();
+            }
+
+
+            if(lines.length == 0) {
+                response.emit('error', "No contents in header for " + record);
+                return;
+            }
+
             // console.log("A HEADER STARTS WITH " + lines[0]);
             var re = /^(\w+)(?:\/(\d+))?\s+(\d+)\s+([0-9e\-.]+)?(?:\/([0-9e\-.]+))?(?:\(([\d-.]+)\))?(?:\s+(\d+))?(?:\s+(\S+))?(?:\s+(\S+))?/;
 
