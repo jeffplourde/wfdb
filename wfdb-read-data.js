@@ -43,6 +43,16 @@ function processFrames(elapsed_ms, header, data, length, response) {
 
                         signalBase += 1.5;
                         break;
+                    case 80:
+                        // console.log(skewedSignalBase);
+                        if(skewedSignalBase>=length) {
+                            adc = Math.NaN;
+                        } else {
+                            adc = data.readUInt8(skewedSignalBase);
+                        }
+                        adc -= 128;
+                        signalBase += 1;
+                        break;
                     case 16:
                         if(skewedSignalBase>=length) {
                             adc = Math.NaN;

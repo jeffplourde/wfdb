@@ -11,7 +11,8 @@ var Playback   = require('./wfdb-playback.js');
 
 function WFDB(locator) {
     this.locator = locator;
-    this.accepted_formats = {212: 12, 16: 16};
+    // format 0 is used in layout files
+    this.accepted_formats = {212: 12, 16: 16, 80: 8, 0:0};
     this.DEFGAIN = 200;
 }
 
