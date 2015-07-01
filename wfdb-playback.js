@@ -155,7 +155,7 @@ function playdataFromFile(record, header, wfdb, options, response) {
                     var deletes = {};
 
                     for(var t = 0; t < batchdata.length; t++) {
-                        var tm = zeroTime + batchdata[t].elapsed_ms;
+                        var tm = zeroTime + 1000 * batchdata[t].sample_number / header.sampling_frequency;
                         // console.log(idx, data);
                         // var tm = Math.floor(zeroTime+1000/header.sampling_frequency*idx);
                         for(var s = 0; s < header.signals.length; s++) {
