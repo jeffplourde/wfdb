@@ -194,6 +194,7 @@ exports.readEntireRecord = function(wfdb, header, callback) {
             
             if(header.segments[i].name != '~' && header.segments[i].number_of_samples_per_signal>0) {
                 header.segments[i].header.start = index;
+                header.segments[i].header.end = index + header.segments[i].number_of_samples_per_signal;
                 segments.push(header.segments[i]);
             }
             index += header.segments[i].number_of_samples_per_signal;
