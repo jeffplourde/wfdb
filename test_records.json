@@ -1,0 +1,13 @@
+{ 
+	"test_records": [
+	"aami-ec13/aami3a",
+	"ahadb/0001",
+	"apnea-ecg/a01",
+	"chfdb/chf01",
+	"drivedb/drive01",
+	"mghdb/mgh001",
+	"mimic2wdb/30/3000003/3000003n",
+	"mimicdb/037/03700001",
+	"mimicdb/numerics/032n",
+	"mitdb/100"]
+}
