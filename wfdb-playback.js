@@ -110,14 +110,16 @@ function playdataFromFile(record, header, wfdb, options, response) {
     }
         
         // // This will be the time at sample 0
-    var zeroTime = Date.now();
+    var zeroTime = Date.now()-60000;
     zeroTime += 1000 - (zeroTime % 1000);
     var lastTime = zeroTime;
     // push the zero point back so we are really starting at startTime
     zeroTime -= options.startTime;
-    
 
-    var interval = setInterval(function() {
+    var timeIntervalMS = 1/header.sampling_frequency*1000;
+    timeIntervalMS = timeIntervalMS > 1000 ? timeIntervalMS : 1000;
+    
+    var intervalFunction = function() {
         // console.log("INTERVaL");
         // publish all the samples since the previous so first convert to index space
         var currentTime = Date.now();
@@ -147,8 +149,10 @@ function playdataFromFile(record, header, wfdb, options, response) {
         // console.log("CurrentTime"+currentTime);
 
         // console.log("emit ", currentTime, firstIndex, lastIndex);
-        if(EventEmitter.listenerCount(response, 'samples')>0 ||
-           EventEmitter.listenerCount(response, 'sample')>0) {
+        if((EventEmitter.listenerCount(response, 'samples')>0 ||
+           EventEmitter.listenerCount(response, 'sample')>0) && 
+           lastIndex>firstIndex) {
+            console.log("READING FRAMES");
             wfdb.readFrames(header, firstIndex, lastIndex, function(res) {
                 var listener = function(batchdata) {
                     var samples = {};
@@ -205,7 +209,10 @@ function playdataFromFile(record, header, wfdb, options, response) {
         }
 
         lastTime = currentTime;
-    }, 1000);
+    };
+
+    intervalFunction();
+    setInterval(intervalFunction, timeIntervalMS);
 }
 
 Playback.prototype.playFromFile = function(record, options, callback) {

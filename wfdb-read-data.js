@@ -1,16 +1,21 @@
 "use strict";
 var EventEmitter = require('events').EventEmitter;
 
+var rows = []; 
+var batchdata = [];
+
 function processFrames(base_sample_number, header, data, length, signal_count, response) {
     //var time_interval = 1000.0 / header.sampling_frequency;
     // Go through the data frame by frame
     //console.log("TTL:"+total_bytes_per_frame);
     
-    var batchdata = [];
+    // var batchdata = [];
+    batchdata.length = 0;
 
     for(var i = 0; i < length; i+=header.total_bytes_per_frame) {
         // console.log("NEW FRAME");
-        var rows = [];
+        rows.length = 0;
+        // var rows = [];
         // Each frame will contain 
         var signalBase = i;
         for(var j = 0; j < header.signals.length; j++) {
@@ -172,7 +177,7 @@ exports.readFrames = function(wfdb, header, start, end, callback) {
             return;
         }
         var data = new Buffer(header.total_bytes_per_frame*(end-start));
-
+        // console.log(header.total_bytes_per_frame, end, start);
         wfdb.locator.locateRange(header.record+'.dat', data, 0, data.length, start*header.total_bytes_per_frame, function(res) {
             res.once('error', function(err) { response.emit('error', err); })
            .on('data', function(bytesRead, data) {
@@ -206,8 +211,8 @@ exports.readEntireRecord = function(wfdb, header, callback) {
                 var header = segments.shift().header;
                 wfdb.locator.locate(header.record+'.dat', function(res) {
                     res.once('error', function(err) { response.emit('error', err); })
-                   .on('data', function(data) {
-                        processFrames(header.start, header, data, data.length, header.signals.length, response);
+                   .on('data', function(data, length) {
+                        processFrames(header.start, header, data, length, header.signals.length, response);
                         readSegment();
                     });
                 });
@@ -215,14 +220,15 @@ exports.readEntireRecord = function(wfdb, header, callback) {
         };
         readSegment();
     } else {
-        if(header.signals.length == 0) {
+        if(!header.signals || !header.signals.length) {
+            console.log(header, "NO SIGNALS");
             response.emit('end');
             return;
         }        
         wfdb.locator.locate(header.record+'.dat', function(res) {
             res.once('error', function(err) { response.emit('error', err); })
-           .on('data', function(data) {
-                processFrames(0, header, data, data.length, header.signals.length, response);
+           .on('data', function(data, length) {
+                processFrames(0, header, data, length, header.signals.length, response);
                 response.emit('end');
             });
         });

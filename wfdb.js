@@ -24,8 +24,8 @@ WFDB.CachedLocator = Locator.CachedLocator;
 
 WFDB.Playback = Playback;
 
-WFDB.prototype.readHeader = function(record, callback) {
-    readHeader(this, record, callback);
+WFDB.prototype.readHeader = function(record) {
+    return readHeader(this, record);
 };
 
 WFDB.prototype.readData = function(header, callback) {
@@ -61,12 +61,37 @@ WFDB.prototype.readHeaderAndData = function(record, callback) {
     });
 };
 
-WFDB.prototype.dblist = function(callback) {
-    util.dblist(this, callback);
+WFDB.prototype.readHeaderAndFrames = function(record, start, end, callback) {
+    var response = new EventEmitter();
+    callback(response);
+    var self = this;
+
+    this.readHeader(record, function(res) {
+        res.on('error', function(err) { response.emit('error', err); })
+        .on('data', function(header) {
+            response.emit('header', header);
+            self.readFrames(header, start, end, function(res) {
+                res.on('error', function(err) { response.emit('error', err); })
+                .on('batch', function(batchdata) {
+                    response.emit('batch', batchdata);
+                })
+                .on('data', function(sequence, data) {
+                    response.emit('data', sequence, data);
+                })
+                .on('end', function() {
+                    response.emit('end');
+                });
+            });
+        });
+    });
 };
 
-WFDB.prototype.rlist = function(database, callback) {
-    util.rlist(this, database, callback);
+WFDB.prototype.dblist = function() {
+    return util.dblist(this);
+};
+
+WFDB.prototype.rlist = function(database) {
+    return util.rlist(this, database);
 };
 
 module.exports = exports = WFDB;

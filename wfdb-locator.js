@@ -5,49 +5,54 @@ var util = require("util");
 var fs = require('graceful-fs');
 var http = require('http');
 var url = require('url');
+var mkdirp = require('mkdirp');
+var stream = require('stream');
 
-var httpAgent = new http.Agent({keepAlive: true, maxSockets: 3, maxFreeSockets: 3});
+var bufferPool = [];
+
+function takeBuffer() {
+    // console.log("TAKE");
+    var buf;
+    if(0==bufferPool.length) {
+        buf = new Buffer(134217728);
+    } else {
+        buf = bufferPool.pop();
+    }
+    buf.contentLength = 0;
+    return buf;
+}
+
+function returnBuffer(buf) {
+    // console.log("RETURN");
+    bufferPool.push(buf);
+}
+
+// var dataBuffer = new Buffer(134217728);
+// var dataBufferLength = 0;
+
+var httpAgent = new http.Agent({keepAlive: true, maxSockets: 1, maxFreeSockets: 3});
 
 function FileLocator(basePath) {
     this.basePath = basePath || "";
 }
 
-FileLocator.prototype.locateRange = function(record, buffer, offset, length, position, callback) {
-    var response = new EventEmitter();
-    callback(response);
-    fs.open(this.basePath+record, "r", function(err, fd) {
-        if(err) {
-            response.emit('error', err);
-        } else {
-            // console.log("read", buffer, offset, length, position);
-            fs.read(fd, buffer, offset, length, position, function(err, bytesRead, buffer) {
-                if(err) {
-                    response.emit('error', err);
-                } else {
-                    //console.log("bytesRead", bytesRead, buffer);
-                    response.emit('data', bytesRead, buffer);
-                    fs.close(fd, function(err) {
-                        if(err) {
-                            response.emit('error', err);
-                        }
-                    });
-                }
-            });
-
-        }
-    });
+FileLocator.prototype.locateRange = function(record, start, end) {
+    var fullRecord = this.basePath+record;
+    if(!fs.existsSync(fullRecord) || fs.statSync(fullRecord).size == 0) {
+        return null;
+    } else {
+        return fs.createReadStream(fullRecord, {'start':start, 'end':end});
+    }    
 }
 
-FileLocator.prototype.locate = function(record, callback) {
-    var response = new EventEmitter();
-    callback(response);
-    fs.readFile(this.basePath+record, function(err, data) {
-        if(err) {
-            response.emit('error', err);
-        } else {
-            response.emit('data', data);
-        }
-    });     
+FileLocator.prototype.locate = function(record, opts) {
+    var fullRecord = this.basePath+record;
+    if(!fs.existsSync(fullRecord) || fs.statSync(fullRecord).size == 0) {
+        // console.log(record, "not found");
+        return null;
+    } else {
+        return fs.createReadStream(fullRecord, opts);
+    }
 };
 
 module.exports.FileLocator = FileLocator;
@@ -56,10 +61,9 @@ function HTTPLocator(baseURI) {
     this.baseURI = baseURI;
 }
 
-HTTPLocator.prototype.locateRange = function(record, buffer, offset, length, position, callback) {
+HTTPLocator.prototype.locateRange = function(record, start, end) {
+    var pipe = new stream.PassThrough();
 
-    var response = new EventEmitter();
-    callback(response);
     var data;
     var self = this;
     var reqinfo = url.parse(this.baseURI+record);
@@ -69,35 +73,23 @@ HTTPLocator.prototype.locateRange = function(record, buffer, offset, length, pos
         path: reqinfo.pathname,
         headers: {
             // byte range here is inclusive and zero-indexed
-            'Range': 'bytes='+position+'-'+(position+length-1)
-        },
+            'Range': 'bytes='+start+'-'+end
+        },        
         'agent': httpAgent
     };
-
     http.get(opts, function(res) {
-        // 206 Partial content is the appropriate response for a range request
         if(res.statusCode != 206) {
-            response.emit('error', "Status code " + res.statusCode + " GETting " + self.baseURI+record);
+            pipe.error("Status code " + res.statusCode + " GETting " + self.baseURI+record);
         } else {
-            res.on('data', function(chunk) {
-                if(!data) {
-                    data = chunk;
-                } else {
-                    data = Buffer.concat([data, chunk]);
-                }
-            }).on('end', function() {
-                response.emit('data', data.length, data);
-            }).on('error', function(e) {
-                response.emit('error', e);
-            });
+            res.pipe(pipe);
         }
-    });
-
+    }).on('error', function(err) { pipe.error(err); });
+    return pipe;
 }
 
-HTTPLocator.prototype.locate = function(record, callback) {
-    var response = new EventEmitter();
-    callback(response);
+HTTPLocator.prototype.locate = function(record) {
+    var pipe = new stream.PassThrough();
+
     var data;
     var self = this;
     var reqinfo = url.parse(this.baseURI+record);
@@ -109,117 +101,59 @@ HTTPLocator.prototype.locate = function(record, callback) {
     };
     http.get(opts, function(res) {
         if(res.statusCode != 200) {
-            response.emit('error', "Status code " + res.statusCode + " GETting " + self.baseURI+record);
+            pipe.emit('error', "Status code " + res.statusCode + " GETting " + self.baseURI+record);
         } else {
-            res.on('data', function(chunk) {
-                if(!data) {
-                    data = chunk;
-                } else {
-                    data = Buffer.concat([data, chunk]);
-                }
-            }).on('end', function() {
-                response.emit('data', data);
-            }).on('error', function(e) {
-                response.emit('error', e);
-            });
+            res.pipe(pipe);
         }
-    }).on('error', function(err) { response.emit('error', err); });
+    }).on('error', function(err) { pipe.emit('error', err); });
+    return pipe;
 };
 
 
 module.exports.HTTPLocator = HTTPLocator;
 
-
-function Cache(basePath, baseURI) {
-    this.basePath = basePath;
-    this.baseURI = baseURI;
-}
-
-Cache.prototype.locate = function(record, callback) {
-    var response = new EventEmitter();
-    callback(response);
-
-    var fullPath = this.basePath + record;
-
-    if(!fs.existsSync(fullPath) || fs.statSync(fullPath).size == 0) {
-        // console.log("file doesn't exist");
-        var parent = fullPath.substring(0, fullPath.lastIndexOf("/"));
-        // TODO there are numerous packages that supply mkdir -p functionality
-        if(!fs.existsSync(parent)) { 
-            var parentPathParts = parent.split("/");
-            var parentPath = parentPathParts[0];
-            if(!fs.existsSync(parentPath)) {
-                fs.mkdirSync(parentPath); 
-            }
-            for(var i = 1; i < parentPathParts.length; i++) {
-                parentPath = parentPath + "/" + parentPathParts[i];
-                if(!fs.existsSync(parentPath)) {
-                    fs.mkdirSync(parentPath); 
-                }
-            }
-        }
-        var self = this;
-        var reqinfo = url.parse(this.baseURI+record);
-        var opts = {
-            hostname: reqinfo.hostname,
-            port: reqinfo.port,
-            path: reqinfo.pathname,
-            'agent': httpAgent
-        };
-
-        http.get(opts, function(res) {
-            if(res.statusCode != 200) {
-                response.emit('error', "Failed HTTP GET with status code: " + res.statusCode + " (" + self.baseURI+record+")");
-            } else {
-                res.on('error', function(err) {
-                    response.emit('error', err);
-                })
-                .once('end', function() {
-                    response.emit('end');
-                });
-                res.pipe(fs.createWriteStream(fullPath));
-            }
-        }).on('error', function(err) { response.emit('error', err); });
-    } else {
-        response.emit('end');
-    }
-}
-
 function CachedLocator(basePath, baseURI) {
     this.fileLocator = new FileLocator(basePath);
-    this.cache = new Cache(basePath, baseURI);
+    this.httpLocator = new HTTPLocator(baseURI);
 }
 
-CachedLocator.prototype.locateRange = function(record, buffer, offset, length, position, callback) {
-    var response = new EventEmitter();
-    callback(response);
-    // console.log("checking cache");
-    var self = this;
-    this.cache.locate(record, function(res) {
-        res.on('error', function(e) {
-            // console.log("error in cache");
-            response.emit('error', e);
-        }).on('end', function() {
-            // console.log("delegating to file locator");
-            self.fileLocator.locateRange(record, buffer, offset, length, position, callback);
-        });
-    });    
+CachedLocator.prototype.locateRange = function(record, start, end) {
+    var filePipe = this.fileLocator.locateRange(record, start, end);
+    if(null == filePipe) {
+        var httpPipe = this.httpLocator.locate(record);
+        var fullPath = this.fileLocator.basePath + record;
+        mkdirp.sync(fullPath.substring(0, fullPath.lastIndexOf("/")));
+        httpPipe.pipe(fs.createWriteStream(fullPath));
+        return this.httpLocator.locateRange(record, start, end);
+    } else {
+        return filePipe;
+    }    
 };
 
-CachedLocator.prototype.locate = function(record, callback) {
-    var response = new EventEmitter();
-    callback(response);
-    // console.log("checking cache");
-    var self = this;
-    this.cache.locate(record, function(res) {
-        res.on('error', function(e) {
-            // console.log("error in cache");
-            response.emit('error', e);
-        }).on('end', function() {
-            // console.log("delegating to file locator");
-            self.fileLocator.locate(record, callback);
+CachedLocator.prototype.locate = function(record) {
+    var filePipe = this.fileLocator.locate(record);
+    if(null == filePipe) {
+        var httpPipe = this.httpLocator.locate(record);
+        var fullPath = this.fileLocator.basePath + record;
+        mkdirp.sync(fullPath.substring(0, fullPath.lastIndexOf("/")));
+        httpPipe.on('error', function(err) {
+            if(fs.existsSync(fullPath)) {
+                console.log("error caching, deleting", fullPath);
+                fs.unlinkSync(fullPath);
+            }
+        }).pipe(fs.createWriteStream(fullPath)).on('end', function() {
+            console.log("cached", record, fs.statSync(fullPath).size);
+        }).on('error', function(err) {
+            if(fs.existsSync(fullPath)) {
+                console.log("error caching, deleting", fullPath);
+                fs.unlinkSync(fullPath);
+            }
         });
-    });
+        // console.log("caching", record);
+        return httpPipe;
+    } else {
+        return filePipe;
+    }
 };
 
 module.exports.CachedLocator = CachedLocator;
