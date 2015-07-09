@@ -27,26 +27,30 @@ DataTransform.prototype._transform = function(chunk, enc, next) {
         delete this.residual;
     }
 
-    var residualBytes = chunk.length % this.header.total_bytes_per_frame;
+    var length = chunk.length;
+    length -= length % this.header.total_bytes_per_frame;
+    length -= this.header.max_skew ? (this.header.max_skew * this.header.total_bytes_per_frame) : 0;
 
-    if(residualBytes) {
-        // Store the residual bytes from this chunk
-        this.residual = new Buffer(residualBytes);
-        chunk.copy(this.residual, 0, chunk.length - residualBytes, chunk.length);
-        // Reference the chunk containing a whole number of frames
-        chunk = chunk.slice(0, chunk.length - residualBytes);
+    if(length > 0) {
+        if(length < chunk.length) {
+            // Store the residual bytes from this chunk
+            this.residual = new Buffer(chunk.length - length);
+            chunk.copy(this.residual, 0, length, chunk.length);
+            // Reference the chunk containing a whole number of frames
+            //chunk = chunk.slice(0, length);
+        }
+
+        this.processFrames(0, this.header, chunk, length);
+        
+    } else {
+        this.residual = chunk;
     }
-
-    if(chunk.length>0) {
-        this.processFrames(0, this.header, chunk);
-    }
-
     next();
 };
 
 DataTransform.prototype._flush = function(next) {
     if(this.residual && this.residual.length > 0) {
-        this.processFrames(0, this.header, this.residual);
+        this.processFrames(0, this.header, this.residual, this.residual.length);
         delete this.residual;
     }
     next();
@@ -55,7 +59,7 @@ DataTransform.prototype._flush = function(next) {
 // Use this in your own pipelines with your own Readable
 exports.DataTransform = DataTransform;
 
-DataTransform.prototype.processFrames = function(base_sample_number, header, data) {
+DataTransform.prototype.processFrames = function(base_sample_number, header, data, length) {
     //var time_interval = 1000.0 / header.sampling_frequency;
     // Go through the data frame by frame
     //console.log("TTL:"+total_bytes_per_frame);
@@ -63,7 +67,7 @@ DataTransform.prototype.processFrames = function(base_sample_number, header, dat
     // var batchdata = [];
     // batchdata.length = 0;
 
-    for(var i = 0; i < data.length; i+=header.total_bytes_per_frame) {
+    for(var i = 0; i < length; i+=header.total_bytes_per_frame) {
         // console.log("NEW FRAME");
         this.rows.length = 0;
         // var rows = [];

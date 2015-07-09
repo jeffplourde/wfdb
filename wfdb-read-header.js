@@ -85,7 +85,10 @@ HeaderTransform.prototype.readSignal = function(data) {
             signal.mask |= 1 << j;
         }
         this.header.signals.push(signal);
-        
+        if(signal.skew) {
+            this.header.max_skew = Math.max(this.header.max_skew || 0, signal.skew);
+        }
+
         if(undefined===this.wfdb.accepted_formats[signal.format]) {
             var discarded = this.header.signals.pop();
             console.log("Cannot decode format " + discarded.format + " for " + discarded.description);

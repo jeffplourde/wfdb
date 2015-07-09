@@ -274,6 +274,7 @@
         "total_bits_per_frame": 72,
         "highest_adc_resolution": 12,
         "highest_samples_per_frame": 4,
-        "total_bytes_per_frame": 9
+        "total_bytes_per_frame": 9,
+        "max_skew": 4
     }
 }
