@@ -212,8 +212,11 @@ function readData(wfdb, header) {
 
 function readFrames(wfdb, header, start, end) {
     if(header.number_of_segments) {
+        // A pipe through which we will send results from the many segment files
+        var pipe = new stream.PassThrough(
+            {readableObjectMode: true,
+            writableObjectMode: true});
 
-        // THIS PART ISN'T DONE
         var segments = [];
         for(var i = 0; i < header.segments.length; i++) {
             // Is there any data at all in this segment
@@ -224,44 +227,50 @@ function readFrames(wfdb, header, start, end) {
         }
         var readSegment = function() {
             if(segments.length==0) {
-                response.emit('end');
+                pipe.end();
             } else {
-                var header = segments.shift().header;
+                var seg_header = segments.shift().header;
                 // Does this segment overlap the requested range?
-                if(header.end > start || header.start < end) {
+                if(seg_header.end > start || seg_header.start < end) {
                     var realStart = start;
                     var realEnd = end;
                     // If this segment starts before the requested range
-                    if(header.start < realStart) {
+                    if(seg_header.start < realStart) {
                         // data.splice(0, (realStart - header.start));
                     // If this segment starts AFTER the requested range then promote the range start
-                    } else if(header.start > realStart) {
-                        realStart = header.start;
+                    } else if(seg_header.start > realStart) {
+                        realStart = seg_header.start;
                     }
-                    if(header.end > realEnd) {
+                    if(seg_header.end > realEnd) {
                         //data.splice(data.length-(header.end-realEnd), (header.end-realEnd));
-                    } else if(header.end < realEnd) {
-                        realEnd = header.end;
+                    } else if(seg_header.end < realEnd) {
+                        realEnd = seg_header.end;
                     }
                     // TODO this check should be "above" here to eliminate segments not relevant to the requested range
                     if(realEnd>realStart) {
-                        var data = new Buffer(header.total_bytes_per_frame*(realEnd-realStart));
-                        var self = this;
-                        wfdb.locator.locateRange(header.record+'.dat', data, 0, data.length, (realStart-header.start)*header.total_bytes_per_frame,  function(res) {
-                            res.once('error', function(err) { response.emit('error', err); })
-                           .on('data', function(bytesRead, data) {
-                                self.processFrames(realStart, header, data, bytesRead, header.signals.length, response);
-                                readSegment.call(this);
-                            });
-                        });
+                        var startBytes = (realStart-seg_header.start)*seg_header.total_bytes_per_frame;
+                        var endBytes = startBytes + seg_header.total_bytes_per_frame*(realEnd-realStart);
+
+                        wfdb.locator.locateRange(seg_header.record+'.dat', 
+                            startBytes, 
+                            endBytes,
+                            {highWaterMark:16})
+                        .on('error', function(err) { pipe.error(err); })
+                        .pipe(DataTransform({'wfdb': wfdb, 'header': seg_header, signal_count: header.signals.length}))
+                        .on('end', function() {
+                            readSegment();
+                        })
+                        .pipe(pipe, {end: false});
+
                     } else {
                         // Chain past this irrelevant segment in case, again this should have already been filtered at this point
-                        readSegment.call(this);
+                        readSegment();
                     }
                 }
             }
         };
-        readSegment.call(this);
+        readSegment();
+        return pipe;
     } else {
 
         // I don't know what to do with this right now .. should emit error through the pipeline
