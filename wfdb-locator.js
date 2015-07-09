@@ -8,27 +8,6 @@ var url = require('url');
 var mkdirp = require('mkdirp');
 var stream = require('stream');
 
-var bufferPool = [];
-
-function takeBuffer() {
-    // console.log("TAKE");
-    var buf;
-    if(0==bufferPool.length) {
-        buf = new Buffer(134217728);
-    } else {
-        buf = bufferPool.pop();
-    }
-    buf.contentLength = 0;
-    return buf;
-}
-
-function returnBuffer(buf) {
-    // console.log("RETURN");
-    bufferPool.push(buf);
-}
-
-// var dataBuffer = new Buffer(134217728);
-// var dataBufferLength = 0;
 
 var httpAgent = new http.Agent({keepAlive: true, maxSockets: 1, maxFreeSockets: 3});
 
