@@ -13,38 +13,39 @@ var locator = new WFDB.FileLocator('test/data/');
 
 var wfdb = new WFDB(locator);
 
+function genResults(record) {
+    var results = {rows: []};
+    
+    wfdb.readHeaderAndData(record)
+    .on('error', function(err) { console.error(err); })
+    .on('header', function(header) { results['header'] = header; })
+    .on('end', function() {
+        var filename = 'test/'+record+'.json';
+        fs.writeFileSync(filename, JSON.stringify(results, null, 4));
+        console.log(filename);   
+    })
+    .on('data', function(data) {
+        results.rows.push(data);
+    });
+}
+
+
 if(record) {
     var results = {rows: []};
-    wfdb.readHeaderAndData(record, function(res) {
-        res.on('header', function(header) {
-            results['header'] = header;
-        }).on('data', function(sequence, data) {
-            results.rows.push(data);
-        }).on('error', function(err) {
-            console.log(err);
-        }).on('end', function() {
-            console.log(JSON.stringify(results, null, 4));
-        });
+    wfdb.readHeaderAndData(record)
+    .on('error', function(err) { console.error(err); })
+    .on('header', function(header) {
+        results['header'] = header;
+    })
+    .on('end', function() {
+        console.log(JSON.stringify(results, null, 4));
+    })
+    .on('data', function(data) {
+        results.rows.push(data);
     }); 
 } else {
     var test_records = JSON.parse(fs.readFileSync('test_records.json', 'utf8')).test_records;
     for(var i = 0; i < test_records.length; i++) {
-        record = test_records[i];
-        
-        wfdb.readHeaderAndData(record, function(res) {
-            var results = {rows: []};
-            var record_ = record;
-            res.on('header', function(header) {
-                results['header'] = header;
-            }).on('data', function(sequence, data) {
-                results.rows.push(data);
-            }).on('error', function(err) {
-                console.log(err);
-            }).on('end', function() {
-                var filename = 'test/'+record_+'.json';
-                fs.writeFileSync(filename, JSON.stringify(results, null, 4));
-                console.log(filename);
-            });
-        }); 
+        genResults(test_records[i]);
     }
 }
