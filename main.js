@@ -42,7 +42,7 @@ wfdb.readHeader(record).on('error', function(err) {
 }).on('end', function() { 
 	console.log("END");
 }).on('data', function(header) {
-	console.log('DATA', header);
+	console.log('DATA', util.inspect(header, {depth:5}));
 });
 // }), function() {
 // 	res.on('data', function(header) {

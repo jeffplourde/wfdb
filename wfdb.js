@@ -1,12 +1,13 @@
 "use strict";
 
-var EventEmitter = require('events').EventEmitter;
+var stream     = require('stream');
 
 var readHeader = require('./wfdb-read-header.js');
 var readData   = require('./wfdb-read-data.js');
 var util       = require('./wfdb-util.js');
 var Locator    = require('./wfdb-locator.js');
 var Playback   = require('./wfdb-playback.js');
+
 
 
 function WFDB(locator) {
@@ -28,62 +29,52 @@ WFDB.prototype.readHeader = function(record) {
     return readHeader(this, record);
 };
 
-WFDB.prototype.readData = function(header, callback) {
-    readData.readEntireRecord(this, header, callback);
+WFDB.prototype.readData = function(header) {
+    return readData.readData(this, header);
 };
 
-WFDB.prototype.readFrames = function(header, start, end, callback) {
-    readData.readFrames(this, header, start, end, callback);
+WFDB.prototype.readFrames = function(header, start, end) {
+    return readData.readFrames(this, header, start, end);
 };
 
-WFDB.prototype.readHeaderAndData = function(record, callback) {
-    var response = new EventEmitter();
-    callback(response);
+WFDB.prototype.readHeaderAndData = function(record) {
+    var pipe = new stream.PassThrough(
+        {readableObjectMode: true,
+         writableObjectMode: true});
+
     var self = this;
 
-    this.readHeader(record, function(res) {
-        res.on('error', function(err) { response.emit('error', err); })
-        .on('data', function(header) {
-            response.emit('header', header);
-            self.readData(header, function(res) {
-                res.on('error', function(err) { response.emit('error', err); })
-                .on('batch', function(batchdata) {
-                    response.emit('batch', batchdata);
-                })
-                .on('data', function(sequence, data) {
-                    response.emit('data', sequence, data);
-                })
-                .on('end', function() {
-                    response.emit('end');
-                });
-            });
-        });
+    var header;
+
+    this.readHeader(record)
+    .on('error', function(err) { pipe.error(err); })
+    .on('end', function() { self.readData(header).pipe(pipe); })
+    .on('data', function(h) {
+        header = h;
+        // This is awkward but should be possible
+        pipe.emit('header', header);
     });
+
+    return pipe;
 };
 
-WFDB.prototype.readHeaderAndFrames = function(record, start, end, callback) {
-    var response = new EventEmitter();
-    callback(response);
+WFDB.prototype.readHeaderAndFrames = function(record, start, end) {
+    var pipe = new stream.PassThrough(
+        {readableObjectMode: true,
+         writableObjectMode: true});
+
     var self = this;
 
-    this.readHeader(record, function(res) {
-        res.on('error', function(err) { response.emit('error', err); })
-        .on('data', function(header) {
-            response.emit('header', header);
-            self.readFrames(header, start, end, function(res) {
-                res.on('error', function(err) { response.emit('error', err); })
-                .on('batch', function(batchdata) {
-                    response.emit('batch', batchdata);
-                })
-                .on('data', function(sequence, data) {
-                    response.emit('data', sequence, data);
-                })
-                .on('end', function() {
-                    response.emit('end');
-                });
-            });
-        });
+    var header;
+
+    this.readHeader(record)
+    .on('error', function(err) { pipe.error(err); })
+    .on('end', function() { self.readFrames(header, start, end).pipe(pipe); })
+    .on('data', function(h) {
+        header = h;
+        pipe.emit('header', header);
     });
+    return pipe;
 };
 
 WFDB.prototype.dblist = function() {

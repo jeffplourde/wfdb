@@ -2,8 +2,6 @@
 
 var LineTransform = require('./wfdb-util').LineTransform;
 
-var EventEmitter = require('events').EventEmitter;
-
 var stream = require('stream');
 
 var util = require('util');
@@ -20,10 +18,11 @@ function HeaderTransform(opts) {
     stream.Transform.call(this, opts);
     this.record = opts.record;
     this.wfdb   = opts.wfdb;
+    this.segmentIndex = 0;
 };
 util.inherits(HeaderTransform, stream.Transform);
 
-var COMMENTS = /^\s*#.*$/;
+var COMMENTS = /^\s*#.*\s*$/;
 var BLANK    = /^\s*$/;
 var HEADER   = /^(\w+)(?:\/(\d+))?\s+(\d+)\s+([0-9e\-.]+)?(?:\/([0-9e\-.]+))?(?:\(([\d-.]+)\))?(?:\s+(\d+))?(?:\s+(\S+))?(?:\s+(\S+))?/;
 var LAYOUT   = /^.+_layout$/;
@@ -118,18 +117,23 @@ HeaderTransform.prototype.readSegment = function(data, next) {
                 number_of_samples_per_signal: +arr[2]
             };
         var self = this;
+
         if(!segment.name.match(LAYOUT)) {
             this.header.segments.push(segment);
-        }        
+        }
         if(segment.name != '~') {
             readHeader(this.wfdb, base+'/'+segment.name)
             .on('error', 
                 function(err) { console.error(err, segment.name); next(err); })
             .on('end',
-                function() { console.log("DONE", segment.name); next(); })
+                function() { self.segmentIndex += segment.number_of_samples_per_signal; next(); })
             .on('data', function(header) {
                 segment.header = header;
 
+                if(segment.header.number_of_samples_per_signal>0) {
+                    segment.header.start = self.segmentIndex;
+                    segment.header.end = self.segmentIndex + segment.number_of_samples_per_signal;
+                }
                 // TODO this is a little hacky for now importing layout signals to the top level
                 if(segment.name.match(LAYOUT)) {
                     self.header.signals = segment.header.signals;
@@ -137,7 +141,6 @@ HeaderTransform.prototype.readSegment = function(data, next) {
                     for(var i = 0; i < self.header.signals.length; i++) {
                         self.header.signalIndex[self.header.signals[i].description] = i;
                     }
-                    console.log(self.header.signalIndex);
                 } else {                                
                     // This is also hacky to allow signals to occupy the same position in data arrays regardless of their position in the segment
                     // Further we are assuming that the "layout" file is the first segment to be processed
@@ -147,6 +150,7 @@ HeaderTransform.prototype.readSegment = function(data, next) {
                 }
             });                        
         } else {
+            self.segmentIndex += segment.number_of_samples_per_signal;
             next();
         }
 
@@ -163,19 +167,19 @@ HeaderTransform.prototype._transform = function(chunk, enc, next) {
     } else if(data.match(BLANK)) {
         next();
     } else if(!this.header) {
-        console.log("Read header");
         next(this.readHeader(data));
     } else if(this.header.number_of_segments) {
-        console.log("Read segment", data);
         this.readSegment(data, next);
     } else {
         next(this.readSignal(data));
-        console.log("Read signal");
     }
 };
 
 HeaderTransform.prototype._flush = function(next) {
-    this.header.total_bytes_per_frame = this.header.total_bits_per_frame / 8;
+    if(!this.header.number_of_segments) {
+        // If not segments then calculate total_bytes_per_frame at the top level
+        this.header.total_bytes_per_frame = this.header.total_bits_per_frame / 8;
+    }    
     this.push(this.header);
     this.header = null;
     next();

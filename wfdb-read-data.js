@@ -1,20 +1,73 @@
 "use strict";
-var EventEmitter = require('events').EventEmitter;
+var stream = require('stream');
 
-var rows = []; 
-var batchdata = [];
+var util = require('util');
 
-function processFrames(base_sample_number, header, data, length, signal_count, response) {
+
+
+function DataTransform(opts) {
+    // allow use without new
+    if (!(this instanceof DataTransform)) {
+        return new DataTransform(opts);
+    }
+    opts = opts || {};
+    opts.readableObjectMode = true;
+
+    stream.Transform.call(this, opts);
+    this.header = opts.header;
+    this.wfdb   = opts.wfdb;
+    this.rows = [];
+    this.residual = null;
+};
+util.inherits(DataTransform, stream.Transform);
+
+DataTransform.prototype._transform = function(chunk, enc, next) {
+    // If there is residual then combine it with this chunk
+    if(this.residual) {
+        chunk = Buffer.concat([this.residual, chunk]);
+        delete this.residual;
+    }
+
+    var residualBytes = chunk.length % this.header.total_bytes_per_frame;
+
+    if(residualBytes) {
+        // Store the residual bytes from this chunk
+        this.residual = new Buffer(residualBytes);
+        chunk.copy(this.residual, 0, chunk.length - residualBytes, chunk.length);
+        // Reference the chunk containing a whole number of frames
+        chunk = chunk.slice(0, chunk.length - residualBytes);
+    }
+
+    if(chunk.length>0) {
+        this.processFrames(0, this.header, chunk);
+    }
+
+    next();
+};
+
+DataTransform.prototype._flush = function(next) {
+    if(this.residual && this.residual.length > 0) {
+        this.processFrames(0, this.header, this.residual);
+        delete this.residual;
+    }
+    next();
+};
+
+// Use this in your own pipelines with your own Readable
+exports.DataTransform = DataTransform;
+
+DataTransform.prototype.processFrames = function(base_sample_number, header, data) {
     //var time_interval = 1000.0 / header.sampling_frequency;
     // Go through the data frame by frame
     //console.log("TTL:"+total_bytes_per_frame);
     
     // var batchdata = [];
-    batchdata.length = 0;
+    // batchdata.length = 0;
+    var signal_count = header.signals.length;
 
-    for(var i = 0; i < length; i+=header.total_bytes_per_frame) {
+    for(var i = 0; i < data.length; i+=header.total_bytes_per_frame) {
         // console.log("NEW FRAME");
-        rows.length = 0;
+        this.rows.length = 0;
         // var rows = [];
         // Each frame will contain 
         var signalBase = i;
@@ -25,7 +78,7 @@ function processFrames(base_sample_number, header, data, length, signal_count, r
                 var skewedSignalBase = signalBase + header.signals[j].skew * header.total_bytes_per_frame;
                 switch(header.signals[j].format) {
                     case 212:
-                        if(skewedSignalBase>=length) {
+                        if(skewedSignalBase>=data.length) {
                             adc = Math.NaN;
                         } else {
                             // integer 
@@ -49,7 +102,7 @@ function processFrames(base_sample_number, header, data, length, signal_count, r
                         break;
                     case 80:
                         // console.log(skewedSignalBase);
-                        if(skewedSignalBase>=length) {
+                        if(skewedSignalBase>=data.length) {
                             adc = Math.NaN;
                         } else {
                             adc = data.readUInt8(skewedSignalBase);
@@ -58,7 +111,7 @@ function processFrames(base_sample_number, header, data, length, signal_count, r
                         signalBase += 1;
                         break;
                     case 16:
-                        if(skewedSignalBase>=length) {
+                        if(skewedSignalBase>=data.length) {
                             adc = Math.NaN;
                         } else {
                             adc = data.readInt16LE(skewedSignalBase);
@@ -80,12 +133,12 @@ function processFrames(base_sample_number, header, data, length, signal_count, r
                 //console.log(signals[j].description + " upsample at " + upsample_rate + " highest " + highest_samples_per_frame + " this " + signals[j].samples_per_frame);
                 for(var l = 0; l < upsample_rate; l++) {
                     var row_num = k * upsample_rate + l;
-                    while(row_num>=rows.length) {
+                    while(row_num>=this.rows.length) {
                         var arr = [];
                         arr.length = signal_count;
-                        rows.push(arr);
+                        this.rows.push(arr);
                     }
-                    rows[row_num][header.signals[j].index] = value;
+                    this.rows[row_num][header.signals[j].index] = value;
                 }
 
             }
@@ -94,42 +147,71 @@ function processFrames(base_sample_number, header, data, length, signal_count, r
             
         }
 
-        for(var t = 0; t < rows.length; t++) {
+        for(var t = 0; t < this.rows.length; t++) {
             // var time =  Math.floor(e/3600000)+":"+
             //             Math.floor(e%3600000/60000)+":"+
             //             Math.floor(e%60000/1000)+"."+
             //             Math.floor(e%1000);
             // console.log("EMIT DATA SAMPLE");
-            var sample_number = base_sample_number + i / header.total_bytes_per_frame;
-            response.emit('data', sample_number, rows[t]);
-            batchdata.push({'sample_number': sample_number, 'data': rows[t]});
+            // var sample_number = base_sample_number + i / header.total_bytes_per_frame;
+            // console.log("push", this.rows[t]);
+            this.push(this.rows[t]);
+            // response.emit('data', sample_number, rows[t]);
+            // batchdata.push({'sample_number': sample_number, 'data': rows[t]});
                 //(i/header.total_bytes_per_frame*header.highest_samples_per_frame+t),rows[t]);
         }
     }
-    response.emit('batch', batchdata);
+    // response.emit('batch', batchdata);
 }
 
+function readData(wfdb, header) {
+    if(header.number_of_segments) {
+        var segments = [];
+        for(var i = 0; i < header.segments.length; i++) {
+            
+            if(header.segments[i].name != '~' && header.segments[i].number_of_samples_per_signal>0) {
+                segments.push(header.segments[i]);
+            }
+        }
+        var readSegment = function() {
+            if(segments.length==0) {
+                response.emit('end');
+            } else {
+                var header = segments.shift().header;
+                wfdb.locator.locate(header.record+'.dat', function(res) {
+                    res.once('error', function(err) { response.emit('error', err); })
+                   .on('data', function(data, length) {
+                        processFrames(header.start, header, data, length, header.signals.length, response);
+                        readSegment();
+                    });
+                });
+            }
+        };
+        readSegment();
+    } else {
+        // I don't know what to do with this right now .. should emit error through the pipeline
+        if(!header.signals || !header.signals.length) {
+            console.log(header, "NO SIGNALS");
+            return null;
+        }        
+        // TODO highWaterMark might be set to a multiple of the frame size
+        return wfdb.locator.locate(header.record+'.dat', {highWaterMark:16})
+        .on('error', function(err) { pipe.emit('error', err); })
+        .pipe(DataTransform({'wfdb': wfdb, 'header': header}));
+    }
+}
 
-exports.readFrames = function(wfdb, header, start, end, callback) {
-    var response = new EventEmitter();
-    callback(response);
-
+function readFrames(wfdb, header, start, end) {
     if(header.number_of_segments) {
 
         // THIS PART ISN'T DONE
-       
-
-        var index = 0;
         var segments = [];
         for(var i = 0; i < header.segments.length; i++) {
             // Is there any data at all in this segment
             if(header.segments[i].name != '~' && header.segments[i].number_of_samples_per_signal>0) {
                 // Is any of the data in this segment that is in the overall range?
-                header.segments[i].header.start = index;
-                header.segments[i].header.end = index + header.segments[i].number_of_samples_per_signal;
                 segments.push(header.segments[i]);
             }
-            index += header.segments[i].number_of_samples_per_signal;
         }
         var readSegment = function() {
             if(segments.length==0) {
@@ -172,65 +254,24 @@ exports.readFrames = function(wfdb, header, start, end, callback) {
         };
         readSegment();
     } else {
-        if(header.signals.length == 0) {
-            response.emit('end');
-            return;
-        }
-        var data = new Buffer(header.total_bytes_per_frame*(end-start));
-        // console.log(header.total_bytes_per_frame, end, start);
-        wfdb.locator.locateRange(header.record+'.dat', data, 0, data.length, start*header.total_bytes_per_frame, function(res) {
-            res.once('error', function(err) { response.emit('error', err); })
-           .on('data', function(bytesRead, data) {
-                processFrames(start, header, data, bytesRead, header.signals.length, response);
-                response.emit('end');
-            });
-        });
-    }
-};
 
-exports.readEntireRecord = function(wfdb, header, callback) {
-    var response = new EventEmitter();
-    callback(response);
-
-    if(header.number_of_segments) {
-        var index = 0;
-        var segments = [];
-        for(var i = 0; i < header.segments.length; i++) {
-            
-            if(header.segments[i].name != '~' && header.segments[i].number_of_samples_per_signal>0) {
-                header.segments[i].header.start = index;
-                header.segments[i].header.end = index + header.segments[i].number_of_samples_per_signal;
-                segments.push(header.segments[i]);
-            }
-            index += header.segments[i].number_of_samples_per_signal;
-        }
-        var readSegment = function() {
-            if(segments.length==0) {
-                response.emit('end');
-            } else {
-                var header = segments.shift().header;
-                wfdb.locator.locate(header.record+'.dat', function(res) {
-                    res.once('error', function(err) { response.emit('error', err); })
-                   .on('data', function(data, length) {
-                        processFrames(header.start, header, data, length, header.signals.length, response);
-                        readSegment();
-                    });
-                });
-            }
-        };
-        readSegment();
-    } else {
+        // I don't know what to do with this right now .. should emit error through the pipeline
         if(!header.signals || !header.signals.length) {
             console.log(header, "NO SIGNALS");
-            response.emit('end');
-            return;
+            return null;
         }        
-        wfdb.locator.locate(header.record+'.dat', function(res) {
-            res.once('error', function(err) { response.emit('error', err); })
-           .on('data', function(data, length) {
-                processFrames(0, header, data, length, header.signals.length, response);
-                response.emit('end');
-            });
-        });
+        // TODO highWaterMark might be set to a multiple of the frame size
+        return wfdb.locator.locateRange(header.record+'.dat', 
+            start*header.total_bytes_per_frame,
+            end*header.total_bytes_per_frame, 
+            {highWaterMark:16})
+        .on('error', function(err) { pipe.emit('error', err); })
+        .pipe(DataTransform({'wfdb': wfdb, 'header': header}));
     }
 };
+
+
+// use this to assemble a pipeline from a locator
+exports.readData = readData;
+exports.readFrames = readFrames;
+
