@@ -36,12 +36,15 @@ function FileLocator(basePath) {
     this.basePath = basePath || "";
 }
 
-FileLocator.prototype.locateRange = function(record, start, end) {
+FileLocator.prototype.locateRange = function(record, start, end, opts) {
     var fullRecord = this.basePath+record;
     if(!fs.existsSync(fullRecord) || fs.statSync(fullRecord).size == 0) {
         return null;
     } else {
-        return fs.createReadStream(fullRecord, {'start':start, 'end':end});
+        opts = opts || {};
+        opts.start = start;
+        opts.end = end;
+        return fs.createReadStream(fullRecord, opts);
     }    
 }
 
@@ -61,7 +64,7 @@ function HTTPLocator(baseURI) {
     this.baseURI = baseURI;
 }
 
-HTTPLocator.prototype.locateRange = function(record, start, end) {
+HTTPLocator.prototype.locateRange = function(record, start, end, opts) {
     var pipe = new stream.PassThrough();
 
     var data;
@@ -117,14 +120,14 @@ function CachedLocator(basePath, baseURI) {
     this.httpLocator = new HTTPLocator(baseURI);
 }
 
-CachedLocator.prototype.locateRange = function(record, start, end) {
-    var filePipe = this.fileLocator.locateRange(record, start, end);
+CachedLocator.prototype.locateRange = function(record, start, end, opts) {
+    var filePipe = this.fileLocator.locateRange(record, start, end, opts);
     if(null == filePipe) {
         var httpPipe = this.httpLocator.locate(record);
         var fullPath = this.fileLocator.basePath + record;
         mkdirp.sync(fullPath.substring(0, fullPath.lastIndexOf("/")));
         httpPipe.pipe(fs.createWriteStream(fullPath));
-        return this.httpLocator.locateRange(record, start, end);
+        return this.httpLocator.locateRange(record, start, end, opts);
     } else {
         return filePipe;
     }    
