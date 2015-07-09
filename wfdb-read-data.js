@@ -3,8 +3,6 @@ var stream = require('stream');
 
 var util = require('util');
 
-
-
 function DataTransform(opts) {
     // allow use without new
     if (!(this instanceof DataTransform)) {
@@ -16,6 +14,7 @@ function DataTransform(opts) {
     stream.Transform.call(this, opts);
     this.header = opts.header;
     this.wfdb   = opts.wfdb;
+    this.signal_count = opts.signal_count;
     this.rows = [];
     this.residual = null;
 };
@@ -63,7 +62,6 @@ DataTransform.prototype.processFrames = function(base_sample_number, header, dat
     
     // var batchdata = [];
     // batchdata.length = 0;
-    var signal_count = header.signals.length;
 
     for(var i = 0; i < data.length; i+=header.total_bytes_per_frame) {
         // console.log("NEW FRAME");
@@ -135,8 +133,12 @@ DataTransform.prototype.processFrames = function(base_sample_number, header, dat
                     var row_num = k * upsample_rate + l;
                     while(row_num>=this.rows.length) {
                         var arr = [];
-                        arr.length = signal_count;
+                        arr.length = this.signal_count;
                         this.rows.push(arr);
+                    }
+                    if(header.signals[j].index >= this.rows[row_num].length) {
+                        console.error("Invalid Signal index", header.signals[j].index, this.rows[row_num].length);
+                        // console.error(header);
                     }
                     this.rows[row_num][header.signals[j].index] = value;
                 }
@@ -166,6 +168,11 @@ DataTransform.prototype.processFrames = function(base_sample_number, header, dat
 
 function readData(wfdb, header) {
     if(header.number_of_segments) {
+        // A pipe through which we will send results from the many segment files
+        var pipe = new stream.PassThrough(
+            {readableObjectMode: true,
+            writableObjectMode: true});
+
         var segments = [];
         for(var i = 0; i < header.segments.length; i++) {
             
@@ -175,19 +182,21 @@ function readData(wfdb, header) {
         }
         var readSegment = function() {
             if(segments.length==0) {
-                response.emit('end');
+                pipe.end();
             } else {
-                var header = segments.shift().header;
-                wfdb.locator.locate(header.record+'.dat', function(res) {
-                    res.once('error', function(err) { response.emit('error', err); })
-                   .on('data', function(data, length) {
-                        processFrames(header.start, header, data, length, header.signals.length, response);
-                        readSegment();
-                    });
-                });
+                var seg_header = segments.shift().header;
+                wfdb.locator.locate(seg_header.record+'.dat', {highWaterMark:16})
+                .on('error', function(err) { pipe.error(err); })
+                .pipe(DataTransform({'wfdb': wfdb, 'header': seg_header, signal_count: header.signals.length}))
+                .on('end', function() {
+                    readSegment();
+                })
+                .pipe(pipe, {end: false});
             }
         };
         readSegment();
+
+        return pipe;
     } else {
         // I don't know what to do with this right now .. should emit error through the pipeline
         if(!header.signals || !header.signals.length) {
@@ -197,7 +206,7 @@ function readData(wfdb, header) {
         // TODO highWaterMark might be set to a multiple of the frame size
         return wfdb.locator.locate(header.record+'.dat', {highWaterMark:16})
         .on('error', function(err) { pipe.emit('error', err); })
-        .pipe(DataTransform({'wfdb': wfdb, 'header': header}));
+        .pipe(DataTransform({'wfdb': wfdb, 'header': header, signal_count: header.signals.length}));
     }
 }
 
@@ -237,22 +246,22 @@ function readFrames(wfdb, header, start, end) {
                     // TODO this check should be "above" here to eliminate segments not relevant to the requested range
                     if(realEnd>realStart) {
                         var data = new Buffer(header.total_bytes_per_frame*(realEnd-realStart));
-
+                        var self = this;
                         wfdb.locator.locateRange(header.record+'.dat', data, 0, data.length, (realStart-header.start)*header.total_bytes_per_frame,  function(res) {
                             res.once('error', function(err) { response.emit('error', err); })
                            .on('data', function(bytesRead, data) {
-                                processFrames(realStart, header, data, bytesRead, header.signals.length, response);
-                                readSegment();
+                                self.processFrames(realStart, header, data, bytesRead, header.signals.length, response);
+                                readSegment.call(this);
                             });
                         });
                     } else {
                         // Chain past this irrelevant segment in case, again this should have already been filtered at this point
-                        readSegment();
+                        readSegment.call(this);
                     }
                 }
             }
         };
-        readSegment();
+        readSegment.call(this);
     } else {
 
         // I don't know what to do with this right now .. should emit error through the pipeline
@@ -266,7 +275,7 @@ function readFrames(wfdb, header, start, end) {
             end*header.total_bytes_per_frame, 
             {highWaterMark:16})
         .on('error', function(err) { pipe.emit('error', err); })
-        .pipe(DataTransform({'wfdb': wfdb, 'header': header}));
+        .pipe(DataTransform({'wfdb': wfdb, 'header': header, signal_count: header.signals.length}));
     }
 };
 
