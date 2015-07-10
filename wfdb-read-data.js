@@ -80,7 +80,9 @@ DataTransform.prototype.processFrames = function(base_sample_number, header, dat
                 var skewedSignalBase = signalBase + header.signals[j].skew * header.total_bytes_per_frame;
                 switch(header.signals[j].format) {
                     case 212:
-                        if(skewedSignalBase>=data.length) {
+                        // Using this byte and part of the next (or vice versa)
+                        // so we need an extra byte
+                        if(skewedSignalBase>=(data.length-1)) {
                             adc = Math.NaN;
                         } else {
                             // integer 
@@ -113,7 +115,7 @@ DataTransform.prototype.processFrames = function(base_sample_number, header, dat
                         signalBase += 1;
                         break;
                     case 16:
-                        if(skewedSignalBase>=data.length) {
+                        if(skewedSignalBase>=(data.length-1)) {
                             adc = Math.NaN;
                         } else {
                             adc = data.readInt16LE(skewedSignalBase);
