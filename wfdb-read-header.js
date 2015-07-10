@@ -193,7 +193,7 @@ exports.HeaderTransform = HeaderTransform;
 
 function readHeader(wfdb, record) {
     var pipe = 
-        wfdb.locator.locate(record+'.hea',{highWaterMark:16}).on('error', function(err) { pipe.emit('error', err); })
+        wfdb.locator.locate(record+'.hea',{highWaterMark:wfdb.highWaterMark}).on('error', function(err) { pipe.emit('error', err); })
         .pipe(LineTransform()).on('error', function(err) { pipe.emit('error', err); })
         .pipe(HeaderTransform({'wfdb': wfdb, 'record':record}));
     return pipe;

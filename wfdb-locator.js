@@ -9,7 +9,7 @@ var mkdirp = require('mkdirp');
 var stream = require('stream');
 
 
-var httpAgent = new http.Agent({keepAlive: true, maxSockets: 1, maxFreeSockets: 3});
+var httpAgent = new http.Agent({keepAlive: true, maxSockets: 3, maxFreeSockets: 3});
 
 function FileLocator(basePath) {
     this.basePath = basePath || "";

@@ -199,7 +199,7 @@ function readData(wfdb, header) {
                 pipe.end();
             } else {
                 var seg_header = segments.shift().header;
-                wfdb.locator.locate(seg_header.record+'.dat', {highWaterMark:16})
+                wfdb.locator.locate(seg_header.record+'.dat', {highWaterMark:wfdb.highWaterMark})
                 .on('error', function(err) { pipe.error(err); })
                 .pipe(DataTransform({'wfdb': wfdb, 'header': seg_header, signal_count: header.signals.length}))
                 .on('end', function() {
@@ -218,7 +218,7 @@ function readData(wfdb, header) {
             return null;
         }        
         // TODO highWaterMark might be set to a multiple of the frame size
-        return wfdb.locator.locate(header.record+'.dat', {highWaterMark:16})
+        return wfdb.locator.locate(header.record+'.dat', {highWaterMark:wfdb.highWaterMark})
         .on('error', function(err) { pipe.emit('error', err); })
         .pipe(DataTransform({'wfdb': wfdb, 'header': header, signal_count: header.signals.length}));
     }
@@ -268,7 +268,7 @@ function readFrames(wfdb, header, start, end) {
                         wfdb.locator.locateRange(seg_header.record+'.dat', 
                             startBytes, 
                             endBytes-1, // we are exclusive but locateRange is inclusive
-                            {highWaterMark:16})
+                            {highWaterMark:wfdb.highWaterMark})
                         .on('error', function(err) { pipe.error(err); })
                         .pipe(DataTransform({'wfdb': wfdb, 'header': seg_header, signal_count: header.signals.length}))
                         .on('end', function() {
@@ -297,13 +297,10 @@ function readFrames(wfdb, header, start, end) {
         var startBytes = start*header.total_bytes_per_frame;
         var endBytes = startBytes + header.total_bytes_per_frame*(end-start);
 
-        // console.warn("startBytes %d endBytes %d total %d", startBytes, endBytes, endBytes-startBytes);
-
-        // TODO highWaterMark might be set to a multiple of the frame size
         return wfdb.locator.locateRange(header.record+'.dat', 
             startBytes,
             endBytes-1, // we are exclusive but locateRange is inclusive
-            {highWaterMark:16})
+            {highWaterMark:wfdb.highWaterMark})
         .on('error', function(err) { pipe.emit('error', err); })
         .pipe(DataTransform({'wfdb': wfdb, 'header': header, signal_count: header.signals.length}));
     }

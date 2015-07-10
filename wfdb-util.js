@@ -88,7 +88,7 @@ exports.DBListTransform = DBListTransform;
 
 // use this to assemble a pipeline from a locator
 exports.dblist = function(wfdb) {
-    return wfdb.locator.locate('DBS',{highWaterMark:16}).pipe(LineTransform()).pipe(DBListTransform());
+    return wfdb.locator.locate('DBS').pipe(LineTransform()).pipe(DBListTransform());
 };
 
 function RListTransform(opts) {
@@ -122,5 +122,5 @@ exports.RListTransform = RListTransform;
 // use this to assemble a pipeline from a locator
 exports.rlist = function(wfdb, database) {
     database = database + (database.charAt(database.length-1)!='/'?'/':'') + 'RECORDS';
-    return wfdb.locator.locate(database,{highWaterMark:16}).pipe(LineTransform()).pipe(RListTransform());
+    return wfdb.locator.locate(database).pipe(LineTransform()).pipe(RListTransform());
 };
