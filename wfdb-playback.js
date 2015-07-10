@@ -50,8 +50,8 @@ function playdata(record, alldata, options, response) {
             return;
         }
 
-        // console.log("emit " + firstIndex + " to " + lastIndex);
-        if(EventEmitter.listenerCount(response, 'sample')>0) {
+        if(EventEmitter.listenerCount(response, 'sample')>0 ||
+           EventEmitter.listenerCount(response, 'delete')>0 ) {
             for(var s = 0; s < alldata.header.signals.length; s++) {
                 var ee = emittersByOrdinal[s];
                 for(var i = firstIndex; i < lastIndex; i++) {
@@ -84,18 +84,20 @@ Playback.prototype.playFromMemory = function(record, options, callback) {
 
     var alldata = {samples: []};
 
-    this.wfdb.readHeaderAndData(record, function(res) {
-        res.on('header', function(header) {
-            alldata['header'] = header;
-            response.emit('header', header);
-        }).on('data', function(sequence, data) {
-            alldata.samples.push(data);
-        }).on('error', function(err) {
-            response.emit('error', err);
-        }).on('end', function() {
-            playdata(record, alldata, options, response);
-        });
-    });     
+    this.wfdb.readHeaderAndData(record)
+    .on('header', function(header) { 
+        alldata['header'] = header;
+        response.emit('header', header);
+    })
+    .on('error', function(err) { 
+        response.emit('error', err);
+    })
+    .on('end', function() { 
+        playdata(record, alldata, options, response);
+    })
+    .on('data', function(data) {
+        alldata.samples.push(data);
+    });
 };
 
 function playdataFromFile(record, header, wfdb, options, response) {
@@ -118,7 +120,10 @@ function playdataFromFile(record, header, wfdb, options, response) {
 
     var timeIntervalMS = 1/header.sampling_frequency*1000;
     timeIntervalMS = timeIntervalMS > 1000 ? timeIntervalMS : 1000;
-    
+
+    // TODO This is not great
+    var currentIndex = (options.startTime+60000)/1000*header.sampling_frequency;
+
     var intervalFunction = function() {
         // console.log("INTERVaL");
         // publish all the samples since the previous so first convert to index space
@@ -152,58 +157,35 @@ function playdataFromFile(record, header, wfdb, options, response) {
         if((EventEmitter.listenerCount(response, 'samples')>0 ||
            EventEmitter.listenerCount(response, 'sample')>0) && 
            lastIndex>firstIndex) {
-            console.log("READING FRAMES");
-            wfdb.readFrames(header, firstIndex, lastIndex, function(res) {
-                var listener = function(batchdata) {
-                    var samples = {};
-                    var deletes = {};
 
-                    for(var t = 0; t < batchdata.length; t++) {
-                        var tm = zeroTime + 1000 * batchdata[t].sample_number / header.sampling_frequency;
-                        // console.log(idx, data);
-                        // var tm = Math.floor(zeroTime+1000/header.sampling_frequency*idx);
-                        for(var s = 0; s < header.signals.length; s++) {
-                            var descriptor = record+'/'+header.signals[s].description
-                            var ee = emittersByOrdinal[s];
-                            // for(var i = firstIndex; i < lastIndex; i++) {
-                                // console.log(i + "   " + alldata.samples[i]);
-                                
-                                // console.log("add tm="+tm+" zeroTime="+zeroTime+" sf="+header.sampling_frequency+" i="+i);
-                                ee.active.push(tm);
-                                
-                                if(!samples[descriptor]) {
-                                    samples[descriptor] = [{"tm":tm, val:batchdata[t].data[s]}];
-                                } else {
-                                    samples[descriptor].push({"tm":tm, val:batchdata[t].data[s]});
-                                }
-                                response.emit('sample', descriptor, {"tm":tm, val:batchdata[t].data[s]});
-                            // }
-                            while(ee.active.length>0&&(currentTime-ee.active[0])>=options.activeWindowMs) {
-                                // console.log(currentTime, ee.active[0]);
-                                var tm = ee.active.shift();
-                                if(!deletes[descriptor]) {
-                                    deletes[descriptor] = [tm];
-                                } else {
-                                    deletes[descriptor].push(tm);
-                                }
-                                response.emit('delete', descriptor, tm);
-                            }
-                        }
-                    }
-                    response.emit('samples', samples);
-                    response.emit('deletes', deletes);
-                };
-                res.on('batch', listener).on('error', function(err) {
-                    response.emit('error', err);
-                }).on('end', function() {
-                    // console.log("DONE", listener);
+            var listener = function(data) {
+                var sample_number = currentIndex++;
 
-                    if(listener) {
-                        res.removeListener('batch', listener);
-                        listener = null;
+                var tm = zeroTime + 1000 * sample_number / header.sampling_frequency;
+                // console.log(sample_number, tm, new Date(tm));
+
+                for(var s = 0; s < header.signals.length; s++) {
+                    var descriptor = record+'/'+header.signals[s].description
+                    var ee = emittersByOrdinal[s];
+                    if(typeof data[s] != 'undefined' && data[s] != null) {
+                        ee.active.push(tm);
+                        var sample = {"tm":tm, val:data[s]};
+                        // console.log(descriptor, sample);
+                        response.emit('sample', descriptor, sample);
+                    }   
+                    while(ee.active.length>0&&(currentTime-ee.active[0])>=options.activeWindowMs) {
+                        // console.log(currentTime, ee.active[0]);
+                        var tm = ee.active.shift();
+                        response.emit('delete', descriptor, tm);
                     }
-                });
-            });
+                }
+            };      
+            wfdb.readFrames(header, firstIndex, lastIndex)
+            .on('error', function(err) { console.error(err); })
+            .once('end', function() {
+            })
+            .on('data', listener)
+
         } else {
             //console.log("No listeners");
         }
@@ -224,14 +206,14 @@ Playback.prototype.playFromFile = function(record, options, callback) {
     options.loop = options.loop || false;
     options.startTime = options.startTime || 0;
     var self = this;
-    this.wfdb.readHeader(record, function(res) {
-        res.on('data', function(header) {
-            response.emit('header', header);
-            playdataFromFile(record, header, self.wfdb, options, response);
-        }).on('error', function(err) {
-            response.emit('error', err);
-        });
-    });     
+    var header;
+    this.wfdb.readHeader(record)
+    .on('error', function(err) { response.emit('error', err); })
+    .on('end', function() { playdataFromFile(record, header, self.wfdb, options, response); })
+    .on('data', function(h) { 
+        header = h;
+        response.emit('header', h);
+    });
 };
 
 module.exports = exports = Playback;

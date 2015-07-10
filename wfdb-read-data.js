@@ -265,8 +265,6 @@ function readFrames(wfdb, header, start, end) {
                         var startBytes = (realStart-seg_header.start)*seg_header.total_bytes_per_frame;
                         var endBytes = startBytes + seg_header.total_bytes_per_frame*(realEnd-realStart);
 
-                        console.warn("startBytes %d endBytes %d total %d", startBytes, endBytes, endBytes-startBytes);
-
                         wfdb.locator.locateRange(seg_header.record+'.dat', 
                             startBytes, 
                             endBytes-1, // we are exclusive but locateRange is inclusive
