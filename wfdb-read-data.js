@@ -41,7 +41,7 @@ DataTransform.prototype._transform = function(chunk, enc, next) {
         }
 
         this.processFrames(0, this.header, chunk, length);
-        
+
     } else {
         this.residual = chunk;
     }
@@ -49,8 +49,10 @@ DataTransform.prototype._transform = function(chunk, enc, next) {
 };
 
 DataTransform.prototype._flush = function(next) {
-    if(this.residual && this.residual.length > 0) {
-        this.processFrames(0, this.header, this.residual, this.residual.length);
+    if(this.residual) {
+        if(this.residual.length > 0) {
+            this.processFrames(0, this.header, this.residual, this.residual.length);
+        }
         delete this.residual;
     }
     next();
@@ -66,6 +68,12 @@ DataTransform.prototype.processFrames = function(base_sample_number, header, dat
     
     // var batchdata = [];
     // batchdata.length = 0;
+    // console.log("processFrames", length, data.length);
+
+    if(length < header.total_bytes_per_frame) {
+        console.warn("Incomplete frame expected %d and got %d bytes", header.total_bytes_per_frame, length);
+        return;
+    }
 
     for(var i = 0; i < length; i+=header.total_bytes_per_frame) {
         // console.log("NEW FRAME");
@@ -257,9 +265,11 @@ function readFrames(wfdb, header, start, end) {
                         var startBytes = (realStart-seg_header.start)*seg_header.total_bytes_per_frame;
                         var endBytes = startBytes + seg_header.total_bytes_per_frame*(realEnd-realStart);
 
+                        console.warn("startBytes %d endBytes %d total %d", startBytes, endBytes, endBytes-startBytes);
+
                         wfdb.locator.locateRange(seg_header.record+'.dat', 
                             startBytes, 
-                            endBytes,
+                            endBytes-1, // we are exclusive but locateRange is inclusive
                             {highWaterMark:16})
                         .on('error', function(err) { pipe.error(err); })
                         .pipe(DataTransform({'wfdb': wfdb, 'header': seg_header, signal_count: header.signals.length}))
@@ -284,10 +294,17 @@ function readFrames(wfdb, header, start, end) {
             console.log(header, "NO SIGNALS");
             return null;
         }        
+
+
+        var startBytes = start*header.total_bytes_per_frame;
+        var endBytes = startBytes + header.total_bytes_per_frame*(end-start);
+
+        // console.warn("startBytes %d endBytes %d total %d", startBytes, endBytes, endBytes-startBytes);
+
         // TODO highWaterMark might be set to a multiple of the frame size
         return wfdb.locator.locateRange(header.record+'.dat', 
-            start*header.total_bytes_per_frame,
-            end*header.total_bytes_per_frame, 
+            startBytes,
+            endBytes-1, // we are exclusive but locateRange is inclusive
             {highWaterMark:16})
         .on('error', function(err) { pipe.emit('error', err); })
         .pipe(DataTransform({'wfdb': wfdb, 'header': header, signal_count: header.signals.length}));
