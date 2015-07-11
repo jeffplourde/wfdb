@@ -1,7 +1,7 @@
 {
   "name": "wfdb",
   "version": "0.0.1",
-  "description": "Library for accessing Waveform DataBase files.",
+  "description": "Library for accessing WaveForm DataBase files.",
   "main": "wfdb.js",
   "scripts": {
     "test": "node_modules/.bin/mocha"
@@ -14,5 +14,8 @@
   },
   "devDependencies": {
     "mocha": "^2.2.5"
+  },
+  "engines": {
+    "node": ">= 0.10"
   }
 }
