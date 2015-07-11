@@ -14,6 +14,7 @@ function HeaderTransform(opts) {
     }
     opts = opts || {};
     opts.readableObjectMode = true;
+    opts.objectMode = true; // for backward compatibility
 
     stream.Transform.call(this, opts);
     this.record = opts.record;

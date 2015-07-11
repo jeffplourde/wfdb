@@ -38,9 +38,11 @@ WFDB.prototype.readFrames = function(header, start, end) {
 };
 
 WFDB.prototype.readHeaderAndData = function(record) {
-    var pipe = new stream.PassThrough(
-        {readableObjectMode: true,
-         writableObjectMode: true});
+    var pipe = new stream.PassThrough({
+        readableObjectMode: true,
+        writableObjectMode: true,
+        objectMode: true // for backward compatibility
+    });
 
     var self = this;
 
@@ -61,9 +63,11 @@ WFDB.prototype.readHeaderAndData = function(record) {
 };
 
 WFDB.prototype.readHeaderAndFrames = function(record, start, end) {
-    var pipe = new stream.PassThrough(
-        {readableObjectMode: true,
-         writableObjectMode: true});
+    var pipe = new stream.PassThrough({
+        readableObjectMode: true,
+        writableObjectMode: true,
+        objectMode: true // for backward compatibility
+    });
 
     var self = this;
 

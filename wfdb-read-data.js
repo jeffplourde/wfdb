@@ -10,6 +10,7 @@ function DataTransform(opts) {
     }
     opts = opts || {};
     opts.readableObjectMode = true;
+    opts.objectMode = true; // for backward compatibility
 
     stream.Transform.call(this, opts);
     this.header = opts.header;
@@ -183,9 +184,11 @@ DataTransform.prototype.processFrames = function(base_sample_number, header, dat
 function readData(wfdb, header) {
     if(header.number_of_segments) {
         // A pipe through which we will send results from the many segment files
-        var pipe = new stream.PassThrough(
-            {readableObjectMode: true,
-            writableObjectMode: true});
+        var pipe = new stream.PassThrough({
+            readableObjectMode: true,
+            writableObjectMode: true,
+            objectMode: true // for backward compatibility
+        });
 
         var segments = [];
         for(var i = 0; i < header.segments.length; i++) {
@@ -227,9 +230,11 @@ function readData(wfdb, header) {
 function readFrames(wfdb, header, start, end) {
     if(header.number_of_segments) {
         // A pipe through which we will send results from the many segment files
-        var pipe = new stream.PassThrough(
-            {readableObjectMode: true,
-            writableObjectMode: true});
+        var pipe = new stream.PassThrough({
+            readableObjectMode: true,
+            writableObjectMode: true,
+            objectMode: true // for backward compatibility
+        });
 
         var segments = [];
         for(var i = 0; i < header.segments.length; i++) {
