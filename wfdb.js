@@ -47,8 +47,10 @@ WFDB.prototype.readHeaderAndData = function(record) {
     var header;
 
     this.readHeader(record)
-    .on('error', function(err) { pipe.error(err); })
-    .on('end', function() { self.readData(header).pipe(pipe); })
+    .on('error', function(err) { pipe.emit('error', err); })
+    .on('end', function() { self.readData(header).on('error', function(err) {
+        pipe.emit('error', err);
+    }).pipe(pipe); })
     .on('data', function(h) {
         header = h;
         // This is awkward but should be possible
@@ -68,8 +70,10 @@ WFDB.prototype.readHeaderAndFrames = function(record, start, end) {
     var header;
 
     this.readHeader(record)
-    .on('error', function(err) { pipe.error(err); })
-    .on('end', function() { self.readFrames(header, start, end).pipe(pipe); })
+    .on('error', function(err) { pipe.emit('error', err); })
+    .on('end', function() { self.readFrames(header, start, end).on('error', function(err) {
+        pipe.emit('error', err);
+    }).pipe(pipe); })
     .on('data', function(h) {
         header = h;
         pipe.emit('header', header);
