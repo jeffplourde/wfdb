@@ -3,7 +3,7 @@
 var fs = require('fs');
 var assert = require('assert');
 
-var WFDB = require('../wfdb.js');
+var WFDB = require('../index.js');
 
 var locator = new WFDB.FileLocator('test/data/');
 

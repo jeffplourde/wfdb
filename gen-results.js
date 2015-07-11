@@ -7,7 +7,7 @@ var fs = require('fs');
  */
 var record = process.argv[2];
 
-var WFDB = require('./wfdb.js');
+var WFDB = require('./index.js');
 
 var locator = new WFDB.FileLocator('test/data/');
 
