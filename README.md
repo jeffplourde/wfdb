@@ -24,7 +24,7 @@ npm test
 
 * Retrieve and decode Physiobank records
 ```bash
-node main.js mghdb/mgh001
+node examples/main.js mghdb/mgh001
 ```
 
 Rationale

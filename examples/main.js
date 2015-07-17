@@ -6,7 +6,7 @@ var util = require('util');
 // database/record such as mghdb/mgh001
 var record = process.argv[2] || (console.log("Specify a record") || process.exit(-1));
 
-var WFDB = require('./wfdb.js');
+var WFDB = require('../index.js');
 
 // A Locator can be any object with a locate(record) method that returns a readable stream.
 // The builtin CachedLocator retrieves data from Physiobank; using the local
