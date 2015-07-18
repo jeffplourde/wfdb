@@ -1,6 +1,6 @@
 {
   "name": "wfdb",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Library for accessing WaveForm DataBase files.",
   "main": "index.js",
   "scripts": {
